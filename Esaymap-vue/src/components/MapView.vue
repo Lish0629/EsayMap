@@ -25,7 +25,7 @@ onMounted(() => {
     center: [120.2, 30.3],
     zoom: 10
   })
-
+  view.ui.remove('attribution')
   mapStore.setMapView(view) // 注册到全局
 })
 </script>
@@ -34,7 +34,8 @@ onMounted(() => {
 .map-container {
   width: 100%;
   height: 100%;
-  border-radius: 16px;
+  border-radius: 24px;
   overflow: hidden;
+  box-shadow: 0px 2px 1px -1px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 1px 1px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 1px 3px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12));
 }
 </style>

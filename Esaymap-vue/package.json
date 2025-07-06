@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@arcgis/core": "^4.33.8",
+    "@mdi/font": "^7.4.47",
     "pinia": "^3.0.3",
     "sass": "^1.89.2",
     "sass-loader": "^16.0.5",

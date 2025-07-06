@@ -26,6 +26,7 @@ import ChatBox from '@/components/ChatBox.vue'
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
 }
 
 /* 让 v-row 填满剩余高度 */
