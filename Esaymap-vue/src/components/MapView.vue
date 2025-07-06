@@ -5,18 +5,40 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import Map from '@arcgis/core/Map'
-import MapView from '@arcgis/core/views/MapView'
-import { useMapStore } from '@/store/mapStore'
 
 import '@arcgis/core/assets/esri/themes/light/main.css'
+import Map from '@arcgis/core/Map'
+import MapView from '@arcgis/core/views/MapView'
+import WebTileLayer from '@arcgis/core/layers/WebTileLayer'
+
+import { useMapStore } from '@/store/mapStore'
 
 const mapDiv = ref(null)
 const mapStore = useMapStore()
 
 onMounted(() => {
+  const tdLayer = new WebTileLayer({
+    urlTemplate:
+      'http://{subDomain}.tianditu.gov.cn/DataServer?T=vec_w&x={col}&y={row}&l={level}&tk=9aa49772a6d157afe863294b50b104a3',
+    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+    id: 'tdLayer',
+    title: '天地图矢量',
+    visible: true,
+    opacity: 1
+  })
+
+  const tdLayer_POI = new WebTileLayer({
+    urlTemplate:
+      'http://{subDomain}.tianditu.gov.cn/DataServer?T=cva_w&x={col}&y={row}&l={level}&tk=9aa49772a6d157afe863294b50b104a3',
+    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+    id: 'tdPOI',
+    title: '天地图注记',
+    visible: true,
+    opacity: 1
+  })
+
   const map = new Map({
-    basemap: 'topo-vector'
+    layers: [tdLayer, tdLayer_POI]
   })
 
   const view = new MapView({
@@ -27,6 +49,7 @@ onMounted(() => {
   })
   view.ui.remove('attribution')
   mapStore.setMapView(view) // 注册到全局
+ 
 })
 </script>
 

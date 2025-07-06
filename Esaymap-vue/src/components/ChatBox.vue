@@ -40,7 +40,11 @@
 import { ref, onMounted, nextTick } from 'vue'
 
 const input = ref('')
-const messages = ref([  {    role: 'system',    text: '你好，欢迎使用EsayMap文言易图！你好，欢迎使用EsayMap文言易图！你好，欢迎使用EsayMap文言易图！你好，欢迎使用EsayMap文言易图！你好，欢迎使用EsayMap文言易图！你好，欢迎使用EsayMap文言易图！你好，欢迎使用EsayMap文言易图！s'  }])
+const messages = ref([  {    
+  role: 'system',
+  text: '你好，欢迎使用EsayMap文言易图！'
+}])
+
 
 const scrollContainer = ref(null)
 
@@ -69,12 +73,13 @@ onMounted(scrollToBottom)
 
 <style scoped>
 .chat-card {
-  height: 100%;
+  height: calc(100% - 8px);
   display: flex;
   flex-direction: column;
   border-radius: 20px;
   overflow: hidden;
   background-color: white;
+  margin:6px -3px -2px 4px !important;
 }
 
 .chat-messages {

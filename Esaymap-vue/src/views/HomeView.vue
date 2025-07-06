@@ -8,7 +8,7 @@
 
       <!-- 右侧对话框，占4/12宽 -->
       <v-col cols="4" class="pa-2 fill-height">
-        <ChatBox />
+        <PanelWrapper />
       </v-col>
     </v-row>
   </v-container>
@@ -16,7 +16,7 @@
 
 <script setup>
 import MapView from '@/components/MapView.vue'
-import ChatBox from '@/components/ChatBox.vue'
+import PanelWrapper from '@/components/PanelWrapper.vue'
 </script>
 
 <style scoped>
