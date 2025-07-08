@@ -1,102 +1,69 @@
-<template>
-  <v-card class="pa-4 rounded-xl layer-card" elevation="2">
-    <h3 class="text-h6 mb-4">图层管理器</h3>
-
-    <v-expansion-panels
-      v-model="expanded"
-      multiple
-      elevation="0"
-      variant="accordion"
-    >
-      <v-expansion-panel
-        v-for="layer in layers"
-        :key="layer.id"
-      >
-        <v-expansion-panel-title>
-          <!-- 左侧：可视勾选框 -->
-          <v-checkbox
-            :model-value="layer.visible"
-            @update:model-value="val => toggleVisibility(layer.id, val)"
-            hide-details
-            density="compact"
-            class="mr-2"
-          />
-          <span class="font-weight-medium">{{ layer.title }}</span>
-        </v-expansion-panel-title>
-
-        <v-expansion-panel-text>
-          <!-- 图层标题编辑 -->
-          <v-text-field
-            v-model="layer.title"
-            label="图层名称"
-            variant="outlined"
-            density="compact"
-            hide-details
-            @change="updateTitle(layer.id, layer.title)"
-          />
-
-          <!-- 透明度控制 -->
-          <v-slider
-            v-model="layer.opacity"
-            min="0"
-            max="1"
-            step="0.01"
-            label="透明度"
-            class="mt-4"
-            @change="updateOpacity(layer.id, layer.opacity)"
-          >
-            <template #prepend>
-              <span class="text-caption">透明度</span>
-            </template>
-          </v-slider>
-
-          <!-- 栅格图层特殊设置（仅预留） -->
-          <div v-if="layer.type === 'raster'" class="mt-2">
-            <v-select
-              label="渲染类型"
-              :items="['continuous', 'discrete']"
-              v-model="layer.renderType"
-              @change="updateRenderType(layer.id, layer.renderType)"
-              variant="outlined"
-              density="compact"
-              hide-details
-            />
-          </div>
-        </v-expansion-panel-text>
-      </v-expansion-panel>
-    </v-expansion-panels>
-  </v-card>
-</template>
-
 <script setup>
-import { storeToRefs } from 'pinia'
-import { useMapStore } from '@/store/mapStore'
 import { ref } from 'vue'
+import { useLayerStore } from '@/store/layerStore'
+import LayerWrapper from './layers/LayerWrapper.vue'
 
-const mapStore = useMapStore()
-const { layers } = storeToRefs(mapStore)
+const layerStore = useLayerStore()
+const expanded = ref({})
 
-const toggleVisibility = mapStore.toggleVisibility
-const updateOpacity = mapStore.updateOpacity
-const updateTitle = mapStore.updateTitle
-const updateRenderType = mapStore.updateRenderType
+function toggleExpand(id) {
+  expanded.value[id] = !expanded.value[id]
+}
 
-const expanded = ref([]) // 控制每个图层展开状态
+function toggleVisible(layer) {
+  layerStore.updateVisibility(layer.id, !layer.visible)
+}
 </script>
 
+<template>
+  <div class="pa-4">
+    <v-list density="compact" class="bg-white">
+      <div v-for="layer in layerStore.layers" :key="layer.id" class="list-item">
+        <v-list-item class="d-flex align-center justify-space-between">
+          <template #prepend>
+            <v-checkbox-btn
+              :model-value="layer.visible"
+              @click.stop="toggleVisible(layer)"
+              density="compact"
+            />
+          </template>
+
+          <v-list-item-title class="text-subtitle-1">
+            {{ layer.title }}
+          </v-list-item-title>
+
+          <template #append>
+            <v-btn
+              icon
+              variant="text"
+              @click.stop="toggleExpand(layer.id)"
+            >
+              <v-icon>{{ expanded[layer.id] ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+            </v-btn>
+          </template>
+        </v-list-item>
+
+        <v-expand-transition>
+          <div v-if="expanded[layer.id]">
+            <LayerWrapper :layer="layer" />
+          </div>
+        </v-expand-transition>
+      </div>
+    </v-list>
+  </div>
+</template>
+
 <style scoped>
-.v-expansion-panel-title {
-  align-items: center;
+.v-list {
+  max-height: 80vh;
+  overflow-y: auto;
 }
-.layer-card{
+.list-item {
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  margin-top: 4px;
+  border-radius: 24px;
+  /*box-shadow: 0px 2px 1px -1px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 1px 1px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 1px 3px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12));
+*/
+  }
 
-  height: calc(100% - 8px);
-  display: flex;
-  flex-direction: column;
-  border-radius: 20px;
-  overflow: hidden;
-  background-color: white;
-  margin:6px -3px -2px 4px !important;
-
-}
 </style>

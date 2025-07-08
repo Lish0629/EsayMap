@@ -1,10 +1,9 @@
-<!-- src/components/MapView.vue -->
 <template>
   <div class="map-container" ref="mapDiv"></div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 
 import '@arcgis/core/assets/esri/themes/light/main.css'
 import Map from '@arcgis/core/Map'
@@ -12,9 +11,11 @@ import MapView from '@arcgis/core/views/MapView'
 import WebTileLayer from '@arcgis/core/layers/WebTileLayer'
 
 import { useMapStore } from '@/store/mapStore'
+import { useLayerStore } from '@/store/layerStore'
 
 const mapDiv = ref(null)
 const mapStore = useMapStore()
+const layerStore = useLayerStore()
 
 onMounted(() => {
   const tdLayer = new WebTileLayer({
@@ -47,11 +48,46 @@ onMounted(() => {
     center: [120.2, 30.3],
     zoom: 10
   })
+
   view.ui.remove('attribution')
-  mapStore.setMapView(view) // 注册到全局
- 
+  mapStore.setMapView(view)
+
+  // 注册图层到 Pinia
+  layerStore.addLayer({
+    id: tdLayer.id,
+    title: tdLayer.title,
+    visible: tdLayer.visible,
+    opacity: tdLayer.opacity,
+    type: 'basemap',
+    instance: tdLayer
+  })
+
+  layerStore.addLayer({
+    id: tdLayer_POI.id,
+    title: tdLayer_POI.title,
+    visible: tdLayer_POI.visible,
+    opacity: tdLayer_POI.opacity,
+    type: 'basemap',
+    instance: tdLayer_POI
+  })
+
+  // 使用 watch 响应式同步图层状态变化
+  watch(
+    () => layerStore.layers.map(l => ({ id: l.id, visible: l.visible, opacity: l.opacity })),
+    (newList) => {
+      for (const config of newList) {
+        const layer = map.layers.find(l => l.id === config.id)
+        if (layer) {
+          layer.visible = config.visible
+          layer.opacity = config.opacity
+        }
+      }
+    },
+    { deep: true }
+  )
 })
 </script>
+
 
 <style scoped>
 .map-container {
