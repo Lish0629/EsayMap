@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 
 export const useMapStore = defineStore('mapStore', () => {
   const mapView = ref(null)
@@ -7,7 +7,7 @@ export const useMapStore = defineStore('mapStore', () => {
   const setMapView = (view) => {
     mapView.value = view
   }
-
+ 
   return {
     mapView,
     setMapView,

@@ -4,7 +4,6 @@
 
 <script setup>
 import { onMounted, ref, watch } from 'vue'
-
 import '@arcgis/core/assets/esri/themes/light/main.css'
 import Map from '@arcgis/core/Map'
 import MapView from '@arcgis/core/views/MapView'
@@ -37,7 +36,6 @@ onMounted(() => {
     visible: true,
     opacity: 1
   })
-
   const map = new Map({
     layers: [tdLayer, tdLayer_POI]
   })
@@ -84,8 +82,8 @@ onMounted(() => {
       }
     },
     { deep: true }
-  )
-})
+    )  
+  })
 </script>
 
 

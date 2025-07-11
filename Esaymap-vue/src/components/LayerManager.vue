@@ -4,6 +4,8 @@ import { useLayerStore } from '@/store/layerStore'
 import LayerWrapper from './layers/LayerWrapper.vue'
 
 const layerStore = useLayerStore()
+
+
 const expanded = ref({})
 
 function toggleExpand(id) {

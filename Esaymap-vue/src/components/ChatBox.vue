@@ -1,23 +1,39 @@
 <template>
   <v-card class="chat-card rounded-xl d-flex flex-column pa-4" elevation="2">
+    <!-- 聊天记录区域 -->
     <div ref="scrollContainer" class="chat-messages flex-grow-1 overflow-y-auto pr-1">
       <div
         v-for="(msg, index) in messages"
         :key="index"
-        :class="[
-          'message-bubble',
-          msg.role === 'system' ? 'left-bubble' : 'right-bubble'
-        ]"
+        :class="['message-bubble', msg.role === 'system' ? 'left-bubble' : 'right-bubble']"
       >
         {{ msg.text }}
       </div>
     </div>
 
+    <!-- 输入区域 -->
     <div class="chat-input-row d-flex align-center mt-2">
-      <v-btn icon class="rounded-circle mr-2" variant="tonal" size="small">
+      <!-- 上传按钮 -->
+      <v-btn
+        icon
+        class="rounded-circle mr-2"
+        variant="tonal"
+        size="small"
+        @click="triggerFileInput"
+      >
         <v-icon>mdi-plus</v-icon>
       </v-btn>
 
+      <!-- 隐藏文件上传输入框 -->
+      <input
+        ref="fileInput"
+        type="file"
+        accept=".geojson,.zip,.csv"
+        style="display: none"
+        @change="onFileChange"
+      />
+
+      <!-- 文本输入框 -->
       <v-text-field
         v-model="input"
         variant="outlined"
@@ -29,6 +45,7 @@
         @keydown.enter="sendMessage"
       />
 
+      <!-- 发送按钮 -->
       <v-btn icon class="rounded-circle ml-2" variant="tonal" size="small" @click="sendMessage">
         <v-icon>mdi-send</v-icon>
       </v-btn>
@@ -38,17 +55,38 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
+import { useUpload } from '@/utils/useUpload'
 
 const input = ref('')
-const messages = ref([  {    
-  role: 'system',
-  text: '你好，欢迎使用EsayMap文言易图！'
-}])
-
+const messages = ref([
+  {
+    role: 'system',
+    text: '你好，欢迎使用EsayMap文言易图！'
+  }
+])
 
 const scrollContainer = ref(null)
+const fileInput = ref(null)
+const { handleFileUpload } = useUpload()
 
-// 自动滚动到底部
+function triggerFileInput() {
+  fileInput.value.click()
+}
+
+function onFileChange(e) {
+  const file = e.target.files[0]
+  if (file) {
+    handleFileUpload(file)
+
+    // 自动生成系统回复消息
+    messages.value.push({
+      role: 'system',
+      text: `已成功上传图层：${file.name}`
+    })
+    scrollToBottom()
+  }
+}
+
 const scrollToBottom = () => {
   nextTick(() => {
     if (scrollContainer.value) {
@@ -57,7 +95,6 @@ const scrollToBottom = () => {
   })
 }
 
-// 发送消息函数（模拟用户）
 const sendMessage = () => {
   if (!input.value.trim()) return
   messages.value.push({
@@ -79,7 +116,7 @@ onMounted(scrollToBottom)
   border-radius: 20px;
   overflow: hidden;
   background-color: white;
-  margin:6px -3px -2px 4px !important;
+  margin: 6px -3px -2px 4px !important;
 }
 
 .chat-messages {
@@ -87,36 +124,27 @@ onMounted(scrollToBottom)
   padding-bottom: 10px;
   display: flex;
   flex-direction: column;
-  /* 确保这里没有 justify-content: stretch 或 align-items: stretch，它们会拉伸子元素 */
-  /* 如果你的气泡还是占据整个宽度，尝试明确设置 align-items: flex-start; 或 align-items: flex-end; */
 }
 
-/* 系统消息左侧圆角框 */
 .left-bubble {
-  /* 这里的关键是：在 flex 容器中（flex-direction: column），子元素默认宽度是自适应内容的，
-     除非有其他属性如 flex-grow 或 align-items: stretch 干扰。
-     你已经有了 max-width，这就很好地限制了最大宽度。
-  */
-  max-width: 85%; /* 限制最大宽度 */
+  max-width: 85%;
   padding: 10px 14px;
   margin: 8px 0;
   background-color: #b0bed9;
   color: #333;
-  align-self: flex-start; /* 将气泡自身对齐到左侧 */
+  align-self: flex-start;
   border-radius: 0px 16px 16px 16px;
   word-break: break-word;
   white-space: pre-wrap;
 }
 
-/* 用户消息右侧圆角框 */
 .right-bubble {
-  /* 同理，宽度会自适应内容 */
-  max-width: 85%; /* 限制最大宽度 */
+  max-width: 85%;
   padding: 10px 14px;
   margin: 8px 0;
   background-color: #394b63;
   color: #fff;
-  align-self: flex-end; /* 将气泡自身对齐到右侧 */
+  align-self: flex-end;
   border-radius: 16px 0px 16px 16px;
   word-break: break-word;
   white-space: pre-wrap;
