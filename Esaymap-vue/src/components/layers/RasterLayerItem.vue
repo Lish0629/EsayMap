@@ -1,8 +1,8 @@
 <script setup>
-import { useLayerStore } from '@/store/layerStore'
+import { useMapStore } from '@/store/mapStore'
 defineProps({ layer: Object })
 
-const layerStore = useLayerStore()
+const layerStore = useMapStore()
 </script>
 
 <template>

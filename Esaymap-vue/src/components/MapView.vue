@@ -10,11 +10,10 @@ import MapView from '@arcgis/core/views/MapView'
 import WebTileLayer from '@arcgis/core/layers/WebTileLayer'
 
 import { useMapStore } from '@/store/mapStore'
-import { useLayerStore } from '@/store/layerStore'
 
 const mapDiv = ref(null)
 const mapStore = useMapStore()
-const layerStore = useLayerStore()
+const layerStore = useMapStore()
 
 onMounted(() => {
   const tdLayer = new WebTileLayer({

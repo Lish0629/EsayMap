@@ -3,17 +3,20 @@ import shp from 'shpjs'
 import Papa from 'papaparse'
 import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer'
 import CSVLayer from '@arcgis/core/layers/CSVLayer'
-import { useLayerStore } from '@/store/layerStore'
+
+import { useMapStore } from '@/store/mapStore'
+import { mapStores } from 'pinia'
 
 export function useUpload() {
-  const layerStore = useLayerStore()
+  const layerStore = useMapStore()
 
   function handleFileUpload(file) {
     const name = file.name.toLowerCase()
 
     if (name.endsWith('.geojson')) {
-      console.log(file)
+
       const url = URL.createObjectURL(file)
+      console.log(url)
       const layer = new GeoJSONLayer({ url, title: file.name, visible: true })
       layerStore.addLayer({
         id: file.name,
@@ -61,6 +64,7 @@ export function useUpload() {
     } else {
       alert('仅支持 .geojson / .zip / .csv 文件')
     }
+    console.log(layerStore.mapView.map.layers.items)
   }
 
   return { handleFileUpload }

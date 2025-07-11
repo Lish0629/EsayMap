@@ -1,9 +1,10 @@
 <script setup>
 import { ref } from 'vue'
-import { useLayerStore } from '@/store/layerStore'
-import LayerWrapper from './layers/LayerWrapper.vue'
 
-const layerStore = useLayerStore()
+import LayerWrapper from './layers/LayerWrapper.vue'
+import { useMapStore } from '@/store/mapStore'
+const layerStore = useMapStore ()
+
 
 
 const expanded = ref({})
