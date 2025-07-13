@@ -2,7 +2,7 @@
 import { useMapStore } from '@/store/mapStore'
 defineProps({ layer: Object })
 
-const layerStore = useMapStore()
+const mapStore = useMapStore()
 </script>
 
 <template>
@@ -11,7 +11,7 @@ const layerStore = useMapStore()
       v-model="layer.title"
       label="图层名称"
       density="compact"
-      @change="layerStore.updateTitle(layer.id, layer.title)"
+      @change="mapStore.updateTitle(layer.id, layer.title)"
     />
     <v-slider
       v-model="layer.opacity"
@@ -20,7 +20,7 @@ const layerStore = useMapStore()
       step="0.01"
       label="透明度"
       class="mt-2"
-      @change="layerStore.updateOpacity(layer.id, layer.opacity)"
+      @change="mapStore.updateOpacity(layer.id, layer.opacity)"
     />
     <v-select
       class="mt-2"

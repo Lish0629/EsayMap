@@ -5,16 +5,13 @@ import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer'
 import CSVLayer from '@arcgis/core/layers/CSVLayer'
 
 import { useMapStore } from '@/store/mapStore'
-import { mapStores } from 'pinia'
-
+import { markRaw } from 'vue'
 export function useUpload() {
   const layerStore = useMapStore()
-
   function handleFileUpload(file) {
     const name = file.name.toLowerCase()
 
     if (name.endsWith('.geojson')) {
-
       const url = URL.createObjectURL(file)
       console.log(url)
       const layer = new GeoJSONLayer({ url, title: file.name, visible: true })
@@ -24,9 +21,10 @@ export function useUpload() {
         visible: true,
         opacity: 1,
         type: 'vector',
-        instance: layer
+        instance: markRaw(layer)
       })
-    } else if (name.endsWith('.zip')) {
+      console.log(map1Store.mapView.map.layers.items)
+      } else if (name.endsWith('.zip')) {
       const reader = new FileReader()
       reader.onload = async e => {
         const buffer = e.target.result
@@ -40,7 +38,7 @@ export function useUpload() {
           visible: true,
           opacity: 1,
           type: 'vector',
-          instance: layer
+          instance: markRaw(layer)
         })
       }
       reader.readAsArrayBuffer(file)
@@ -59,13 +57,11 @@ export function useUpload() {
         visible: true,
         opacity: 1,
         type: 'vector',
-        instance: layer
+        instance: markRaw(layer)
       })
     } else {
       alert('仅支持 .geojson / .zip / .csv 文件')
     }
-    console.log(layerStore.mapView.map.layers.items)
   }
-
   return { handleFileUpload }
 }

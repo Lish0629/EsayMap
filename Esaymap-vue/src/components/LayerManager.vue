@@ -3,9 +3,7 @@ import { ref } from 'vue'
 
 import LayerWrapper from './layers/LayerWrapper.vue'
 import { useMapStore } from '@/store/mapStore'
-const layerStore = useMapStore ()
-
-
+const mapStore = useMapStore ()
 
 const expanded = ref({})
 
@@ -14,14 +12,14 @@ function toggleExpand(id) {
 }
 
 function toggleVisible(layer) {
-  layerStore.updateVisibility(layer.id, !layer.visible)
+  mapStore.updateVisibility(layer.id, !layer.visible)
 }
 </script>
 
 <template>
   <div class="pa-4">
     <v-list density="compact" class="bg-white">
-      <div v-for="layer in layerStore.layers" :key="layer.id" class="list-item">
+      <div v-for="layer in mapStore.layers" :key="layer.id" class="list-item">
         <v-list-item class="d-flex align-center justify-space-between">
           <template #prepend>
             <v-btn

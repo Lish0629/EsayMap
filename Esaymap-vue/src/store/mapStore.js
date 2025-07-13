@@ -1,10 +1,10 @@
 // src/store/mapStore.js
 import { defineStore } from 'pinia'
-import { ref, shallowRef } from 'vue'
+import {ref,triggerRef,shallowRef } from 'vue'
 
 export const useMapStore = defineStore('mapStore', () => {
-  const mapView = ref(null)
-  const layers = shallowRef([])
+  const mapView = shallowRef(null)
+  const layers = ref([])
 
   const setMapView = (view) => {
     mapView.value = view
