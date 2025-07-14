@@ -16,27 +16,12 @@ const mapDiv = ref(null)
 const mapStore = useMapStore()
 
 onMounted(() => {
-  const tdLayer = new WebTileLayer({
-    urlTemplate:
-      'http://{subDomain}.tianditu.gov.cn/DataServer?T=vec_w&x={col}&y={row}&l={level}&tk=9aa49772a6d157afe863294b50b104a3',
-    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
-    id: 'tdLayer',
-    title: '天地图矢量',
-    visible: true,
-    opacity: 1
-  })
 
-  const tdLayer_POI = new WebTileLayer({
-    urlTemplate:
-      'http://{subDomain}.tianditu.gov.cn/DataServer?T=cva_w&x={col}&y={row}&l={level}&tk=9aa49772a6d157afe863294b50b104a3',
-    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
-    id: 'tdPOI',
-    title: '天地图注记',
-    visible: true,
-    opacity: 1
-  })
+
+  //初始化map和mapview
   const map = new Map({
     //layers: [tdLayer, tdLayer_POI]
+    //默认的初始图层，但addlayer功能正常，所以注释
   })
 
   const view = new MapView({
@@ -48,6 +33,28 @@ onMounted(() => {
 
   view.ui.remove('attribution')
   mapStore.setMapView(markRaw(view))
+  
+  //天地图底图
+  const tdLayer = new WebTileLayer({
+    urlTemplate:
+      'http://{subDomain}.tianditu.gov.cn/DataServer?T=vec_w&x={col}&y={row}&l={level}&tk=9aa49772a6d157afe863294b50b104a3',
+    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+    id: 'tdLayer',
+    title: '天地图矢量',
+    visible: true,
+    opacity: 1
+  })
+  //天地图注记
+  const tdLayer_POI = new WebTileLayer({
+    urlTemplate:
+      'http://{subDomain}.tianditu.gov.cn/DataServer?T=cva_w&x={col}&y={row}&l={level}&tk=9aa49772a6d157afe863294b50b104a3',
+    subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
+    id: 'tdPOI',
+    title: '天地图注记',
+    visible: true,
+    opacity: 1
+  })
+
   mapStore.addLayer({
     id: tdLayer.id,
     title: tdLayer.title,
@@ -65,22 +72,7 @@ onMounted(() => {
     type: 'basemap',
     instance: markRaw(tdLayer_POI)
   })
-
-  // 使用 watch 响应式同步图层状态变化
-  watch(
-    () => mapStore.layers.map(l => ({ id: l.id, visible: l.visible, opacity: l.opacity })),
-    (newList) => {
-      for (const config of newList) {
-        const layer = map.layers.find(l => l.id === config.id)
-        if (layer) {
-          layer.visible = config.visible
-          layer.opacity = config.opacity
-        }
-      }
-    },
-    { deep: true }
-    )  
-  })
+})
 </script>
 
 

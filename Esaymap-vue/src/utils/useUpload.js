@@ -23,7 +23,6 @@ export function useUpload() {
         type: 'vector',
         instance: markRaw(layer)
       })
-      console.log(map1Store.mapView.map.layers.items)
       } else if (name.endsWith('.zip')) {
       const reader = new FileReader()
       reader.onload = async e => {

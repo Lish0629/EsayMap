@@ -1,6 +1,6 @@
 // src/store/mapStore.js
 import { defineStore } from 'pinia'
-import {ref,triggerRef,shallowRef } from 'vue'
+import {ref,shallowRef } from 'vue'
 
 export const useMapStore = defineStore('mapStore', () => {
   const mapView = shallowRef(null)
