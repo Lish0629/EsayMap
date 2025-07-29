@@ -1,6 +1,5 @@
 // src/composables/useUpload.js
 import shp from 'shpjs'
-import Papa from 'papaparse'
 import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer'
 import CSVLayer from '@arcgis/core/layers/CSVLayer'
 
@@ -10,7 +9,7 @@ export function useUpload() {
   const layerStore = useMapStore()
   function handleFileUpload(file) {
     const name = file.name.toLowerCase()
-
+    
     if (name.endsWith('.geojson')) {
       const url = URL.createObjectURL(file)
       console.log(url)
@@ -23,6 +22,7 @@ export function useUpload() {
         type: 'vector',
         instance: markRaw(layer)
       })
+
       } else if (name.endsWith('.zip')) {
       const reader = new FileReader()
       reader.onload = async e => {
