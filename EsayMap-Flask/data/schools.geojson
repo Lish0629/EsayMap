@@ -1,16 +1,16 @@
 {
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "properties": {
-        "name": "测试点",
-        "description": "这是一个用于测试的GeoJSON点"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [120.51959, 35.290270]
-      }
-    }
-  ]
+    "geometryType": "esriGeometryPoint",
+    "features": [
+        {
+            "geometry": {
+                "x": 120.51959,
+                "y": 35.29027,
+                "spatialReference": {"wkid": 4326}
+            },
+            "attributes": {
+                "name": "测试点",
+                "description": "这是一个测试点"
+            }
+        }
+    ]
 }

@@ -78,8 +78,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick,markRaw } from 'vue'
 import { useUpload } from '@/utils/useUpload'
+import Graphic from '@arcgis/core/Graphic'
+import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
+import { useMapStore } from '@/store/mapStore'; // 确保正确导入了你的地图 Store
 
 const input = ref('')
 const messages = ref([
