@@ -81,23 +81,30 @@
 import { ref, onMounted, nextTick,markRaw } from 'vue'
 import { useUpload } from '@/utils/useUpload'
 import Graphic from '@arcgis/core/Graphic'
-import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
-import { useMapStore } from '@/store/mapStore'; // 确保正确导入了你的地图 Store
 
+import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
+import { useMapStore } from '@/store/mapStore'; 
+import { useChatStore } from '@/store/chatStore'
+const mapStore = useMapStore();
+const chatStore = useChatStore();
 const input = ref('')
-const messages = ref([
-  {
-    role: 'system', // 使用 'system' 或 'bot' 来区分系统/机器人消息
-    text: '你好，欢迎使用EsayMap文言易图！'
-  }
-])
+// const messages = ref([
+//   {
+//     role: 'system', // 使用 'system' 或 'bot' 来区分系统/机器人消息
+//     text: '你好，欢迎使用EsayMap文言易图！'
+//   }
+// ])
+const isLoading = ref(false)
+const messages = chatStore.messages // 引用 Store 中的 messages
+
+
 
 const scrollContainer = ref(null)
 const fileInput = ref(null)
 const { handleFileUpload } = useUpload()
 
 // --- 新增：加载状态 ---
-const isLoading = ref(false)
+
 
 // --- 新增：后端 API 地址 ---
 // 请根据您的 FastAPI 服务实际运行地址修改
@@ -111,12 +118,7 @@ function onFileChange(e) {
   const file = e.target.files[0]
   if (file) {
     handleFileUpload(file)
-
-    // 自动生成系统回复消息
-    messages.value.push({
-      role: 'system',
-      text: `已成功上传图层：${file.name}`
-    })
+    chatStore.addMessage({ role: 'system', text:  `已成功上传图层：${file.name}`})
     scrollToBottom()
   }
 }
@@ -131,66 +133,146 @@ const scrollToBottom = () => {
 
 // --- 修改：sendMessage 函数 ---
 const sendMessage = async () => {
-  const userMessage = input.value.trim()
-  if (!userMessage || isLoading.value) return // 防止重复提交和空消息
+  const userMessage = input.value.trim() // 从 Store 的 ref 获取值
+  if (!userMessage || isLoading.value) return;
 
-  // 1. 将用户消息添加到聊天记录
-  messages.value.push({
-    role: 'user',
-    text: userMessage
-  })
-  input.value = '' // 清空输入框
+  chatStore.addMessage({ role: 'user', text: userMessage })
 
-  // 2. 设置加载状态
-  isLoading.value = true
-  scrollToBottom() // 滚动到底部显示 "处理中..."
+  isLoading.value = true;
+  input.value = '';
+  scrollToBottom();
 
   try {
-    // 3. 向后端发送 POST 请求
     const response = await fetch(`${API_BASE_URL}/process-request`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ query: userMessage }) // 按照后端 schemas.requests.ProcessRequest 的结构发送
+      body: JSON.stringify({ query: userMessage })
     });
 
-    // 4. 处理响应
     const data = await response.json();
 
     if (data.success) {
-      // 请求成功
-      messages.value.push({
-        role: 'bot', // 或 'system'
-        text: data.message || '操作成功完成。', // 显示后端返回的成功消息
-        data: data.data // 可能包含 ArcGIS 的结果数据
-        // 可以在这里进一步处理 data.data，例如提取几何信息用于地图渲染
-      });
-      console.log("后端返回的数据:", data.data);
+      // --- 处理后端返回的数据 ---
+      let botMessage = {
+        role: 'bot',
+        text: data.message || '操作成功完成。'
+      };
+
+      if (data.data) {
+        // 1. 检查是否是几何数据 (ArcGIS JSON)
+        // ArcGIS Server Geometry Service 通常返回 { geometries: [...] }
+        if (data.data.geometries && Array.isArray(data.data.geometries)) {
+          try {
+            // 调用处理 ArcGIS JSON 几何的函数
+            await handleArcGISGeometryResult(data.data, userMessage);
+            botMessage.text += " 结果已添加到地图。";
+          } catch (layerError) {
+            console.error("添加图层时出错:", layerError);
+            botMessage.text += ` 结果已生成，但添加到地图时出错: ${layerError.message}\n${data.llm_raw_response.replace(/\{.*?\}/g, '')}`;
+            botMessage.error = layerError.message;
+          }
+        }
+        // 2. 检查是否是数值结果 (例如 areasAndLengths)
+        else if (data.data.lengths || data.data.areas) {
+          let resultText = "\n计算结果:";
+          if (data.data.lengths) {
+            // lengths 通常是数字数组
+            const lengthsStr = data.data.lengths.map(l => l.toFixed(2)).join(', ');
+            resultText += `\n长度: [${lengthsStr}]`;
+          }
+          if (data.data.areas) {
+            // areas 通常是数字数组
+            const areasStr = data.data.areas.map(a => a.toFixed(2)).join(', ');
+            resultText += `\n面积: [${areasStr}]`;
+          }
+          botMessage.text += resultText;
+        }
+        // 3. 其他类型的数据或无法识别的数据
+        else {
+          console.warn("收到未知格式的响应数据:", data.data);
+          // 可以选择显示原始 JSON（调试用）
+          botMessage.text += `\n${data.llm_raw_response.replace(/\{.*?\}/g, '')}`;
+          botMessage.text += " (收到数据，但格式未知)";
+        }
+      } else {
+          console.log("操作成功，但无额外数据返回。");
+      }
+
+      chatStore.addMessage(botMessage)
+      // --- 结束处理 ---
     } else {
-      // 请求失败（后端处理出错）
-      messages.value.push({
-        role: 'bot', // 或 'system'
+      chatStore.addMessage({
+        role: 'bot',
         text: data.message || '处理请求时发生错误。',
-        error: data.error || '未知错误' // 显示后端返回的错误详情
+        error: data.error || '未知错误'
       });
     }
   } catch (error) {
-    // 5. 处理网络错误或解析错误
     console.error("调用后端 API 时出错:", error);
-    messages.value.push({
-      role: 'bot', // 或 'system'
+    chatStore.addMessage({
+      role: 'bot',
       text: '无法连接到服务器或处理响应。',
       error: error.message || '网络错误'
-    });
+    })
   } finally {
-    // 6. 重置加载状态
-    isLoading.value = false;
-    scrollToBottom(); // 滚动到底部显示响应或错误
-  }
-}
-// --- 结束修改 ---
 
+    input.value = ''
+    isLoading.value = false;
+    scrollToBottom();
+  }
+};
+/**
+ * 处理后端返回的 ArcGIS JSON 几何数据并将其作为新图层添加到地图
+ * @param {Object} arcgisResultData 后端返回的 ArcGIS JSON 对象，例如 { geometries: [...], geometryType: "...", ... }
+ * @param {string} userQuery 用户的原始查询，用于生成图层标题
+ */
+ async function handleArcGISGeometryResult(arcgisResultData, userQuery) {
+  
+  const geometries = arcgisResultData.geometries;
+  const geometryType = arcgisResultData.geometryType; // 可选，用于信息或验证
+  console.log("处理 ArcGIS JSON 响应数据:", arcgisResultData);
+  if (!geometries || !Array.isArray(geometries) || geometries.length === 0) {
+      console.warn("ArcGIS 几何数据为空或格式不正确:", arcgisResultData);
+      throw new Error("无效的 ArcGIS 几何数据");
+  }
+
+  const graphics = geometries.map(geomData => {
+    return Graphic.fromJSON({
+      geometry: geomData,
+      // 注意：这里没有设置 symbol，Graphic 会使用图层的默认符号 (Renderer)
+      // 如果需要特定符号，可以在这里定义
+      // symbol: { ... },
+      // attributes: { id: i, ... }
+    });
+  })
+  const featureLayer=new FeatureLayer({
+    title: `结果 - ${userQuery.substring(0, 20)}...`,
+    source:graphics,
+    objectIdField: "Id", 
+        fields: [
+          { name: "Id", type: "oid" },
+          { name: "Name", type: "string" }
+        ]
+  });
+  if (graphics.length > 0) {
+      //resultLayer.addMany(graphics);
+      // 3. 将 GraphicsLayer 添加到地图 Store
+      mapStore.addLayer({
+        id: `result_${Date.now()}`, // 生成唯一 ID
+        title: featureLayer.title,
+        visible: true,
+        opacity: 1,
+        type: 'graphics', // 定义一个类型，与你的 Store 逻辑匹配
+        instance: markRaw(featureLayer) // 使用 markRaw 包装 ArcGIS 对象
+      });
+      console.log(`成功添加包含 ${graphics.length} 个要素的结果图层`);
+  } else {
+      console.warn("没有有效的要素可以添加到结果图层。");
+      throw new Error("几何数据转换失败，无法创建图层要素。");
+  }
+};
 onMounted(scrollToBottom)
 </script>
 

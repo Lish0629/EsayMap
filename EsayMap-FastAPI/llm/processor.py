@@ -1,11 +1,11 @@
 # llm/processor.py
-
+import os
 import dashscope
 from dashscope import Application
 from http import HTTPStatus
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional,List 
 from schemas.responses import LLMOutput
 import config
 
@@ -14,6 +14,26 @@ dashscope.api_key = config.DASHSCOPE_API_KEY
 
 # --- 配置日志 ---
 logger = logging.getLogger(__name__)
+
+def get_available_geojson_files() -> List[str]:
+    """
+    获取 data 目录下所有 .geojson 文件的文件名列表。
+    Returns:
+        List[str]: .geojson 文件名列表。
+    """
+    data_dir = config.DATA_DIRECTORY # 从 config.py 获取 data 目录路径
+    try:
+        if os.path.exists(data_dir) and os.path.isdir(data_dir):
+            # 列出目录下所有以 .geojson 结尾的文件
+            files = [f for f in os.listdir(data_dir) if f.lower().endswith('.geojson')]
+            logger.debug(f"在 {data_dir} 目录下找到 GeoJSON 文件: {files}")
+            return files
+        else:
+            logger.warning(f"Data 目录不存在或不是一个目录: {data_dir}")
+            return []
+    except Exception as e:
+        logger.error(f"读取 data 目录文件列表时出错: {e}")
+        return [] # 出错时返回空列表
 
 def call_dashscope_app(user_query: str) -> Optional[LLMOutput]:
     """
@@ -28,7 +48,7 @@ def call_dashscope_app(user_query: str) -> Optional[LLMOutput]:
     Raises:
         Exception: 如果 API 调用失败或返回错误。
     """
-    
+    available_files = get_available_geojson_files()
     # --- 示例：如何设计提示词让大模型返回特定结构 ---
     system_prompt = """
     你是一个地理空间数据处理助手。用户会提供一个自然语言指令，你需要从中提取关键信息并以严格的 JSON 格式返回。
@@ -78,6 +98,8 @@ def call_dashscope_app(user_query: str) -> Optional[LLMOutput]:
     }
     对于缓冲区分析一定要规定bufferSR参数为投影坐标系的代码，否则会报错。
     """
+    system_prompt+=f"""    当前服务器 data 目录下可用的 GeoJSON 文件列表:
+    {json.dumps(available_files, ensure_ascii=False, indent=2)}"""
     messages = [
         {'role': 'system', 'content': system_prompt},
         {'role': 'user', 'content': user_query}

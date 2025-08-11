@@ -1,9 +1,12 @@
 # main.py
+from pathlib import Path  # 导入Path模块用于处理路径
 
-from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, UploadFile, File
+import logging
 import traceback
 import logging
+import shutil  # 导入shutil用于文件操作
 
 # --- 配置日志 ---
 logging.basicConfig(
@@ -20,7 +23,8 @@ from converters.geojson_to_esri import process_geojson_file_to_esri
 from arcgis_utils.client import execute_geometry_operation
 
 app = FastAPI(title="EasyMap GeoProcessor API", version="1.0.0")
-
+DATA_DIR = Path("data")
+DATA_DIR.mkdir(exist_ok=True) # 确保data文件夹存在
 # --- 配置 CORS (如果前端从不同源访问) ---
 # 允许所有来源 (仅用于开发，生产环境请具体配置)
 app.add_middleware(
@@ -38,7 +42,35 @@ async def root():
     """
     logger.info("Health check endpoint accessed.")
     return {"message": "EasyMap GeoProcessor API is running!"}
+@app.post("/upload-geojson/")
+async def upload_geojson_file(file: UploadFile = File(...)):
+    """
+    接收前端上传的 GeoJSON 文件，并将其保存到服务器的 data 目录中。
+    """
+    if not file.filename.lower().endswith('.geojson'):
+        raise HTTPException(status_code=400, detail="文件格式无效，仅支持 .geojson 文件。")
+    
+    # 定义文件的保存路径
+    # 为了安全，我们只使用文件名，防止路径遍历攻击
+    file_path = DATA_DIR / Path(file.filename).name
+    
+    logger.info(f"接收到文件: {file.filename}, 准备保存到: {file_path}")
+    
+    try:
+        # 使用 shutil.copyfileobj 保存文件，效率更高
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        logger.error(f"保存文件时出错: {e}")
+        raise HTTPException(status_code=500, detail=f"无法保存文件: {e}")
+    finally:
+        file.file.close() # 确保文件句柄被关闭
 
+    return {
+        "success": True,
+        "message": f"文件 '{file.filename}' 上传成功。",
+        "filename": file.filename
+    }
 @app.post("/process-request", response_model=ProcessResponse)
 async def process_user_request(request: ProcessRequest):
     """
@@ -79,7 +111,8 @@ async def process_user_request(request: ProcessRequest):
         return ProcessResponse(
             success=True,
             message=success_msg,
-            data=arcgis_result
+            data=arcgis_result,
+            llm_raw_response=llm_output
         )
 
     except HTTPException as he:
