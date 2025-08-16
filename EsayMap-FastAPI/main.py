@@ -158,7 +158,7 @@ async def generate_geojson_feature(request: ProcessRequest):
     try:
         # 调用大模型生成GeoJSON要素
         geojson_result = generate_geojson_from_llm(request.query)
-        
+
         if not geojson_result:
             error_msg = "无法生成要素，请检查输入或稍后重试。"
             logger.warning(error_msg)

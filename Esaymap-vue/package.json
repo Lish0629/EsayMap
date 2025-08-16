@@ -14,6 +14,7 @@
     "@mdi/font": "^7.4.47",
     "papaparse": "^5.5.3",
     "pinia": "^3.0.3",
+    "pinyin-pro": "^3.27.0",
     "sass": "^1.89.2",
     "sass-loader": "^16.0.5",
     "shpjs": "^6.1.0",

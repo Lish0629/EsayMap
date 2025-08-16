@@ -8,7 +8,8 @@ import logging
 from typing import Dict, Any, Optional,List 
 from schemas.responses import LLMOutput
 import config
-
+import re
+import json as json_module
 # 配置 DashScope API Key
 dashscope.api_key = config.DASHSCOPE_API_KEY
 
@@ -199,37 +200,7 @@ def generate_geojson_from_llm(user_query: str) -> dict:
     
     GeoJSON格式示例：
     
-    点要素示例：
-    {
-      "type": "Feature",
-      "properties": {
-        "name": "天安门广场",
-        "description": "北京的标志性建筑"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [116.3978, 39.9092]
-      }
-    }
     
-    面要素示例：
-    {
-      "type": "Feature",
-      "properties": {
-        "name": "杭州市中心",
-        "area": "市中心区域"
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-          [120.1614, 30.2796],
-          [120.1714, 30.2796],
-          [120.1714, 30.2896],
-          [120.1614, 30.2896],
-          [120.1614, 30.2796]
-        ]]
-      }
-    }
     
     要素集合示例：
     {

@@ -23,56 +23,69 @@
     </div>
 
     <!-- 输入区域 -->
-    <div class="chat-input-row d-flex align-center mt-2">
-      <!-- 上传按钮 -->
-      <v-btn
-        icon
-        class="rounded-circle mr-2"
-        variant="tonal"
-        size="small"
-        @click="triggerFileInput"
-        :disabled="isLoading" 
-      >
-        <v-icon>mdi-plus</v-icon>
-      </v-btn>
+    <div class="chat-input-row d-flex flex-column mt-2">
+      <!-- 模式选择区域 -->
+      <div class="d-flex align-center mb-2">
+        <v-checkbox
+          v-model="isAddFeatureMode"
+          label="添加要素"
+          hide-details
+          density="compact"
+          class="mr-2"
+        ></v-checkbox>
+      </div>
 
-      <!-- 隐藏文件上传输入框 -->
-      <input
-        ref="fileInput"
-        type="file"
-        accept=".geojson,.zip,.csv"
-        style="display: none"
-        @change="onFileChange"
-        :disabled="isLoading" 
-      ></input>
+      <!-- 输入和按钮区域 -->
+      <div class="d-flex align-center">
+        <!-- 上传按钮 -->
+        <v-btn
+          icon
+          class="rounded-circle mr-2"
+          variant="tonal"
+          size="small"
+          @click="triggerFileInput"
+          :disabled="isLoading" 
+        >
+          <v-icon>mdi-plus</v-icon>
+        </v-btn>
 
-      <!-- 文本输入框 -->
-      <v-text-field
-        v-model="input"
-        variant="outlined"
-        placeholder="请输入内容..."
-        hide-details
-        density="compact"
-        class="rounded-pill flex-grow-1"
-        bg-color="#f5f5f5"
-        @keydown.enter="sendMessage"
-        :disabled="isLoading" 
-        :loading="isLoading" 
-      />
+        <!-- 隐藏文件上传输入框 -->
+        <input
+          ref="fileInput"
+          type="file"
+          accept=".geojson,.zip,.csv"
+          style="display: none"
+          @change="onFileChange"
+          :disabled="isLoading" 
+        ></input>
 
-      <!-- 发送按钮 -->
-      <v-btn
-        icon
-        class="rounded-circle ml-2"
-        variant="tonal"
-        size="small"
-        @click="sendMessage"
-        :disabled="isLoading || !input.trim()" 
-        :loading="isLoading" 
-      >
-        <v-icon v-if="!isLoading">mdi-send</v-icon>
-        <!-- loading 为 true 时，v-btn 会自动显示 spinner -->
-      </v-btn>
+        <!-- 文本输入框 -->
+        <v-text-field
+          v-model="input"
+          variant="outlined"
+          :placeholder="isAddFeatureMode ? '描述要添加的要素...' : '请输入内容...'"
+          hide-details
+          density="compact"
+          class="rounded-pill flex-grow-1"
+          bg-color="#f5f5f5"
+          @keydown.enter="sendMessage"
+          :disabled="isLoading" 
+          :loading="isLoading" 
+        />
+
+        <!-- 发送按钮 -->
+        <v-btn
+          icon
+          class="rounded-circle ml-2"
+          variant="tonal"
+          size="small"
+          @click="sendMessage"
+          :disabled="isLoading || !input.trim()" 
+          :loading="isLoading" 
+        >
+          <v-icon v-if="!isLoading">mdi-send</v-icon>
+        </v-btn>
+      </div>
     </div>
   </v-card>
 </template>
@@ -87,6 +100,8 @@ import { useMapStore } from '@/store/mapStore';
 import { useChatStore } from '@/store/chatStore'
 import { arcgisToGeoJSON } from '@esri/arcgis-to-geojson-utils';
 import { toGeoJson } from '@/utils/toGeoJson'
+
+import { pinyin } from 'pinyin-pro';
 const mapStore = useMapStore();
 const chatStore = useChatStore();
 const input = ref('')
@@ -101,7 +116,7 @@ const { handleFileUpload,uploadGeoJsonAsFile } = useUpload()
 // --- 后端 API 地址 ---
 // 请根据您的 FastAPI 服务实际运行地址修改
 const API_BASE_URL = 'http://127.0.0.1:8000'
-
+const isAddFeatureMode = ref(false)
 function triggerFileInput() {
   fileInput.value.click()
 }
@@ -135,72 +150,116 @@ const sendMessage = async () => {
   scrollToBottom();
 
   try {
-    const response = await fetch(`${API_BASE_URL}/process-request`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ query: userMessage })
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      // --- 处理后端返回的数据 ---
-      let botMessage = {
-        role: 'bot',
-        text: data.message || '操作成功完成。'
-      };
-
-      if (data.data) {
-        console.log('data.data:', data);
-        // 1. 检查是否是几何数据 (ArcGIS JSON)
-        // ArcGIS Server Geometry Service 通常返回 { geometries: [...] }
-        if (data.data.geometries && Array.isArray(data.data.geometries)) {
-          try {
-            // 调用处理 ArcGIS JSON 几何的函数
-            await handleArcGISGeometryResult(data.data, userMessage);
-            botMessage.text += " 结果已添加到地图。";
-          } catch (layerError) {
-            console.error("添加图层时出错:", layerError);
-            botMessage.text += ` 结果已生成，但添加到地图时出错: ${layerError.message}\n${data.llm_raw_response.replace(/\{.*?\}/g, '')}`;
-            botMessage.error = layerError.message;
-          }
-        }
-        // 2. 检查是否是数值结果 (例如 areasAndLengths)
-        else if (data.data.lengths || data.data.areas) {
-          let resultText = "\n计算结果:";
-          if (data.data.lengths) {
-            // lengths 通常是数字数组
-            const lengthsStr = data.data.lengths.map(l => l.toFixed(2)).join(', ');
-            resultText += `\n长度: [${lengthsStr}]`;
-          }
-          if (data.data.areas) {
-            // areas 通常是数字数组
-            const areasStr = data.data.areas.map(a => a.toFixed(2)).join(', ');
-            resultText += `\n面积: [${areasStr}]`;
-          }
-          botMessage.text += resultText;
-        }
-        // 3. 其他类型的数据或无法识别的数据
-        else {
-          console.warn("收到未知格式的响应数据:", data.data);
-          // 可以选择显示原始 JSON（调试用）
-          botMessage.text += `\n${data.llm_raw_response.replace(/\{.*?\}/g, '')}`;
-          botMessage.text += " (收到数据，但格式未知)";
-        }
-      } else {
-          console.log("操作成功，但无额外数据返回。");
-      }
-
-      chatStore.addMessage(botMessage)
-      // --- 结束处理 ---
-    } else {
-      chatStore.addMessage({
-        role: 'bot',
-        text: data.message || '处理请求时发生错误。',
-        error: data.error || '未知错误'
+    if (isAddFeatureMode.value) {
+      const response = await fetch(`${API_BASE_URL}/generate-geojson-feature`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query: userMessage })
       });
+      const data = await response.json();
+      console.log(data)
+      if (data.success) {
+        // --- 处理后端返回的数据 ---
+        
+        const geojson=data.data.geojson
+        const geojsonString = JSON.stringify(geojson, null, 2);
+        const filename = "generated.geojson"
+        if (geojson.properties.name){
+          filename = getFirstLetters(geojson.properties.name)+".geojson"
+        }
+        
+        // 创建 Blob 对象
+        const blob = new Blob([geojsonString], {
+          type: 'application/geo+json'
+        });
+        
+        // 创建 File 对象
+        const file = new File([blob], filename, {
+          type: 'application/geo+json'
+        });
+        handleFileUpload(file)
+        let botMessage = {
+          role: 'bot',
+          text: data.message+filename || '操作成功完成。'
+        };
+        chatStore.addMessage(botMessage)
+        // --- 结束处理 ---
+      } else {
+        chatStore.addMessage({
+          role: 'bot',
+          text: data.message || '处理请求时发生错误。',
+          error: data.error || '未知错误'
+        });
+      }
+    }
+    else  {
+      const response = await fetch(`${API_BASE_URL}/process-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query: userMessage })
+      });
+      const data = await response.json();
+      if (data.success) {
+        // --- 处理后端返回的数据 ---
+        let botMessage = {
+          role: 'bot',
+          text: data.message || '操作成功完成。'
+        };
+
+        if (data.data) {
+          console.log('data.data:', data);
+          // 1. 检查是否是几何数据 (ArcGIS JSON)
+          // ArcGIS Server Geometry Service 通常返回 { geometries: [...] }
+          if (data.data.geometries && Array.isArray(data.data.geometries)) {
+            try {
+              // 调用处理 ArcGIS JSON 几何的函数
+              await handleArcGISGeometryResult(data.data, userMessage);
+              botMessage.text += " 结果已添加到地图。";
+            } catch (layerError) {
+              console.error("添加图层时出错:", layerError);
+              botMessage.text += ` 结果已生成，但添加到地图时出错: ${layerError.message}\n${data.llm_raw_response.replace(/\{.*?\}/g, '')}`;
+              botMessage.error = layerError.message;
+            }
+          }
+          // 2. 检查是否是数值结果 (例如 areasAndLengths)
+          else if (data.data.lengths || data.data.areas) {
+            let resultText = "\n计算结果:";
+            if (data.data.lengths) {
+              // lengths 通常是数字数组
+              const lengthsStr = data.data.lengths.map(l => l.toFixed(2)).join(', ');
+              resultText += `\n长度: [${lengthsStr}]`;
+            }
+            if (data.data.areas) {
+              // areas 通常是数字数组
+              const areasStr = data.data.areas.map(a => a.toFixed(2)).join(', ');
+              resultText += `\n面积: [${areasStr}]`;
+            }
+            botMessage.text += resultText;
+          }
+          // 3. 其他类型的数据或无法识别的数据
+          else {
+            console.warn("收到未知格式的响应数据:", data.data);
+            // 可以选择显示原始 JSON（调试用）
+            botMessage.text += `\n${data.llm_raw_response.replace(/\{.*?\}/g, '')}`;
+            botMessage.text += " (收到数据，但格式未知)";
+          }
+        } else {
+            console.log("操作成功，但无额外数据返回。");
+        }
+
+        chatStore.addMessage(botMessage)
+        // --- 结束处理 ---
+      } else {
+        chatStore.addMessage({
+          role: 'bot',
+          text: data.message || '处理请求时发生错误。',
+          error: data.error || '未知错误'
+        });
+      }
     }
   } catch (error) {
     console.error("调用后端 API 时出错:", error);
@@ -221,7 +280,7 @@ const sendMessage = async () => {
  * @param {Object} arcgisResultData 后端返回的 ArcGIS JSON 对象，例如 { geometries: [...], geometryType: "...", ... }
  * @param {string} userQuery 用户的原始查询，用于生成图层标题
  */
- async function handleArcGISGeometryResult(arcgisResultData, userQuery) {
+async function handleArcGISGeometryResult(arcgisResultData, userQuery) {
   
   const geometries = arcgisResultData.geometries;
   const geometryType = arcgisResultData.geometryType;
@@ -279,6 +338,19 @@ const sendMessage = async () => {
       throw new Error("几何数据转换失败，无法创建图层要素。");
   }
 };
+
+const getFirstLetters = (chineseText) => {
+  if (!chineseText) return '';
+  
+  const pinyinArray = pinyin(chineseText, { 
+    pattern: 'first',  // 只获取首字母
+    toneType: 'none',
+    type: 'array'
+  });
+  
+  return pinyinArray.join('');
+};
+
 onMounted(scrollToBottom)
 </script>
 
@@ -298,6 +370,7 @@ onMounted(scrollToBottom)
   padding-bottom: 10px;
   display: flex;
   flex-direction: column;
+  scrollbar-width: none;
 }
 
 .message-bubble {
