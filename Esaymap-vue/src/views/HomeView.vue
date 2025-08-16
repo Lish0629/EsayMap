@@ -17,6 +17,23 @@
 <script setup>
 import MapView from '@/components/MapView.vue'
 import PanelWrapper from '@/components/PanelWrapper.vue'
+
+import { arcgisToGeoJSON, geojsonToArcGIS } from '@esri/arcgis-to-geojson-utils';
+import { toGeoJson } from '@/utils/toGeoJson';
+import { onMounted } from 'vue'
+
+onMounted(() => {
+  // 模拟 ArcGIS 数据
+  const json1 = {
+    "geometries": [
+      { "rings": [[[0.0063060740000651094, -0.14540592099996275], [5.6843418860808015e-14, -0.14554444699996338], [0.0063060740000651094, -0.14540592099996275]]] }
+      //,{ "rings": [[[20.006702008000047, 19.854763529000024], [20.000000000000057, 19.854625290000058], [20.006702008000047, 19.854763529000024]]] }
+    ]
+  };
+  const geojson = toGeoJson(json1);
+  console.log(geojson);
+  
+});
 </script>
 
 <style scoped>

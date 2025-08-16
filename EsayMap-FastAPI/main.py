@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__) # 创建一个名为 __main__ 的 logger
 # 导入项目内部模块
 from schemas.requests import ProcessRequest
 from schemas.responses import ProcessResponse, LLMOutput
-from llm.processor import call_dashscope_app
+from llm.processor import call_dashscope_app,generate_geojson_from_llm
 from converters.geojson_to_esri import process_geojson_file_to_esri
 from arcgis_utils.client import execute_geometry_operation
 
@@ -50,12 +50,33 @@ async def upload_geojson_file(file: UploadFile = File(...)):
     if not file.filename.lower().endswith('.geojson'):
         raise HTTPException(status_code=400, detail="文件格式无效，仅支持 .geojson 文件。")
     
+    original_filename = file.filename
     # 定义文件的保存路径
     # 为了安全，我们只使用文件名，防止路径遍历攻击
-    file_path = DATA_DIR / Path(file.filename).name
+    # file_path = DATA_DIR / Path(file.filename).name
     
-    logger.info(f"接收到文件: {file.filename}, 准备保存到: {file_path}")
+    logger.info(f"接收到文件: {file.filename}")
     
+    import re
+
+    filename_without_ext = Path(original_filename).stem  # 获取不带扩展名的文件名
+    print(filename_without_ext)
+    # 清理文件名：删除中文字符，只保留字母、数字、下划线
+    clean_filename = re.sub(r'[\u4e00-\u9fa5]', '', filename_without_ext)  # 删除中文
+    clean_filename = re.sub(r'[^a-zA-Z0-9_]', '', clean_filename)         # 只保留字母、数字、下划线
+    
+    # 转换为小写
+    clean_filename = clean_filename.lower()
+    
+    if not clean_filename or len(clean_filename.strip()) == 0:
+        clean_filename = 'uploaded_file'
+    
+    safe_filename = f"{clean_filename}.geojson"
+
+    file_path = DATA_DIR / safe_filename
+    
+    logger.info(f"生成的安全文件名: {safe_filename}, 准备保存到: {file_path}")
+
     try:
         # 使用 shutil.copyfileobj 保存文件，效率更高
         with file_path.open("wb") as buffer:
@@ -124,6 +145,44 @@ async def process_user_request(request: ProcessRequest):
         error_msg = f"处理请求时发生内部错误: {e}"
         logger.error(error_msg)
         # 打印堆栈跟踪以便调试
+        logger.exception("Full traceback:")
+        raise HTTPException(status_code=500, detail=error_msg)
+@app.post("/generate-geojson-feature")
+async def generate_geojson_feature(request: ProcessRequest):
+    """
+    处理添加要素的请求。
+    调用大模型生成GeoJSON要素并返回。
+    """
+    logger.info(f"Received generate GeoJSON feature request: {request.query}")
+    
+    try:
+        # 调用大模型生成GeoJSON要素
+        geojson_result = generate_geojson_from_llm(request.query)
+        
+        if not geojson_result:
+            error_msg = "无法生成要素，请检查输入或稍后重试。"
+            logger.warning(error_msg)
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        logger.info(f"Successfully generated GeoJSON feature")
+        
+        # 返回成功结果，包含生成的GeoJSON
+        success_msg = f"成功生成要素"
+        logger.info(success_msg)
+        
+        return ProcessResponse(
+            success=True,
+            message=success_msg,
+            data={"geojson": geojson_result},
+            llm_raw_response="要素生成成功"
+        )
+
+    except HTTPException as he:
+        logger.error(f"HTTPException occurred: {he.detail}")
+        raise he
+    except Exception as e:
+        error_msg = f"生成要素时发生内部错误: {e}"
+        logger.error(error_msg)
         logger.exception("Full traceback:")
         raise HTTPException(status_code=500, detail=error_msg)
 

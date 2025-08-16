@@ -85,28 +85,20 @@ import Graphic from '@arcgis/core/Graphic'
 import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 import { useMapStore } from '@/store/mapStore'; 
 import { useChatStore } from '@/store/chatStore'
+import { arcgisToGeoJSON } from '@esri/arcgis-to-geojson-utils';
+import { toGeoJson } from '@/utils/toGeoJson'
 const mapStore = useMapStore();
 const chatStore = useChatStore();
 const input = ref('')
-// const messages = ref([
-//   {
-//     role: 'system', // 使用 'system' 或 'bot' 来区分系统/机器人消息
-//     text: '你好，欢迎使用EsayMap文言易图！'
-//   }
-// ])
+
 const isLoading = ref(false)
 const messages = chatStore.messages // 引用 Store 中的 messages
 
-
-
 const scrollContainer = ref(null)
 const fileInput = ref(null)
-const { handleFileUpload } = useUpload()
+const { handleFileUpload,uploadGeoJsonAsFile } = useUpload()
 
-// --- 新增：加载状态 ---
-
-
-// --- 新增：后端 API 地址 ---
+// --- 后端 API 地址 ---
 // 请根据您的 FastAPI 服务实际运行地址修改
 const API_BASE_URL = 'http://127.0.0.1:8000'
 
@@ -161,6 +153,7 @@ const sendMessage = async () => {
       };
 
       if (data.data) {
+        console.log('data.data:', data);
         // 1. 检查是否是几何数据 (ArcGIS JSON)
         // ArcGIS Server Geometry Service 通常返回 { geometries: [...] }
         if (data.data.geometries && Array.isArray(data.data.geometries)) {
@@ -231,24 +224,38 @@ const sendMessage = async () => {
  async function handleArcGISGeometryResult(arcgisResultData, userQuery) {
   
   const geometries = arcgisResultData.geometries;
-  const geometryType = arcgisResultData.geometryType; // 可选，用于信息或验证
+  const geometryType = arcgisResultData.geometryType;
   console.log("处理 ArcGIS JSON 响应数据:", arcgisResultData);
   if (!geometries || !Array.isArray(geometries) || geometries.length === 0) {
       console.warn("ArcGIS 几何数据为空或格式不正确:", arcgisResultData);
       throw new Error("无效的 ArcGIS 几何数据");
   }
+  console.log(geometries)
+  const arcgisToGeojson=toGeoJson(arcgisResultData)
+  console.log("转换后的 GeoJSON:", arcgisToGeojson);
+  const namePart = `Result${userQuery.substring(0, 20)}`
+  .replace(/[\u4e00-\u9fa5]/g, '')  // 删除所有中文字符
+  .replace(/[^a-zA-Z0-9]/g, '');    // 删除所有符号，只保留字母和数字
 
+// 再添加扩展名
+  const fileName = `${namePart}.geojson`;
+
+
+  const result = await uploadGeoJsonAsFile(arcgisToGeojson, fileName);
+  if (result.success) {
+    console.log('上传成功:', result)
+  } else {
+    console.log('上传失败')
+  }
   const graphics = geometries.map(geomData => {
     return Graphic.fromJSON({
       geometry: geomData,
-      // 注意：这里没有设置 symbol，Graphic 会使用图层的默认符号 (Renderer)
-      // 如果需要特定符号，可以在这里定义
       // symbol: { ... },
       // attributes: { id: i, ... }
     });
   })
   const featureLayer=new FeatureLayer({
-    title: `结果 - ${userQuery.substring(0, 20)}...`,
+    title: `Result-${userQuery.substring(0, 10)}...`,
     source:graphics,
     objectIdField: "Id", 
         fields: [
@@ -257,7 +264,6 @@ const sendMessage = async () => {
         ]
   });
   if (graphics.length > 0) {
-      //resultLayer.addMany(graphics);
       // 3. 将 GraphicsLayer 添加到地图 Store
       mapStore.addLayer({
         id: `result_${Date.now()}`, // 生成唯一 ID

@@ -52,7 +52,7 @@ def call_dashscope_app(user_query: str) -> Optional[LLMOutput]:
     # --- 示例：如何设计提示词让大模型返回特定结构 ---
     system_prompt = """
     你是一个地理空间数据处理助手。用户会提供一个自然语言指令，你需要从中提取关键信息并以严格的 JSON 格式返回。
-
+    
     请从用户的请求中提取以下信息：
     1. filename: 请求中提到的本地 GeoJSON 文件名（必须是 .geojson 结尾，且存在于服务器指定目录中）。
     2. operation: 要执行的 ArcGIS 几何操作名称（如 buffer, project, intersect 等）。
@@ -96,10 +96,27 @@ def call_dashscope_app(user_query: str) -> Optional[LLMOutput]:
         "inSR": 4326
     }
     }
+
+    
     对于缓冲区分析一定要规定bufferSR参数为投影坐标系的代码，否则会报错。
+
+    用户请求："计算data/shape.geojson 文件的面积"
+    你的回复应为：
+    {
+    "filename": "lines.geojson",
+    "operation": "areasAndLengths",
+    "parameters": {
+        "sr": 4326,
+        "lengthUnit":9001,
+        "areaUnit":9001,
+        "calculationType": "geodesic"
+    }
+    }
     """
-    system_prompt+=f"""    当前服务器 data 目录下可用的 GeoJSON 文件列表:
-    {json.dumps(available_files, ensure_ascii=False, indent=2)}"""
+    system_prompt+=f"""
+    当前服务器 data 目录下可用的 GeoJSON 文件列表:
+    {json.dumps(available_files, ensure_ascii=False, indent=2)}
+    """
     messages = [
         {'role': 'system', 'content': system_prompt},
         {'role': 'user', 'content': user_query}
@@ -153,6 +170,134 @@ def call_dashscope_app(user_query: str) -> Optional[LLMOutput]:
             logger.error(error_message)
             if response.code == 'Throttling':
                 logger.warning("Request rate limit exceeded.")
+            raise Exception(error_message)
+
+    except Exception as e:
+        logger.error(f"Error calling DashScope SDK: {e}")
+        raise e
+def generate_geojson_from_llm(user_query: str) -> dict:
+    """
+    调用大模型生成GeoJSON要素。
+    
+    Args:
+        user_query (str): 用户关于要添加要素的描述
+        
+    Returns:
+        dict: 生成的GeoJSON对象
+    """
+    # 构造提示词让大模型生成GeoJSON
+    system_prompt = """
+    你是一个地理空间数据专家。用户会描述想要添加到地图上的地理要素，
+    你需要根据描述生成标准的GeoJSON格式数据。
+    
+    要求：
+    1. 严格按照GeoJSON格式返回
+    2. 支持点(Point)、线(LineString)、面(Polygon)、多点(MultiPoint)、多线(MultiLineString)、多面(MultiPolygon)等几何类型
+    3. 坐标使用WGS84坐标系(经纬度)
+    4. 可以包含适当的属性字段
+    5. 只返回有效的JSON，不要包含任何解释文字或代码块标记
+    
+    GeoJSON格式示例：
+    
+    点要素示例：
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "天安门广场",
+        "description": "北京的标志性建筑"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [116.3978, 39.9092]
+      }
+    }
+    
+    面要素示例：
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "杭州市中心",
+        "area": "市中心区域"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [120.1614, 30.2796],
+          [120.1714, 30.2796],
+          [120.1714, 30.2896],
+          [120.1614, 30.2896],
+          [120.1614, 30.2796]
+        ]]
+      }
+    }
+    
+    要素集合示例：
+    {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": {"name": "点1"},
+          "geometry": {"type": "Point", "coordinates": [120.0, 30.0]}
+        },
+        {
+          "type": "Feature", 
+          "properties": {"name": "线1"},
+          "geometry": {
+            "type": "LineString", 
+            "coordinates": [[120.0, 30.0], [121.0, 31.0]]
+          }
+        }
+      ]
+    }
+    
+    请根据用户的描述生成相应的GeoJSON数据。
+    """
+    
+    messages = [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': user_query}
+    ]
+    
+    logger.info(f"Calling DashScope to generate GeoJSON for: {user_query}")
+
+    try:
+        # 调用 DashScope Generation API
+        response = Application.call(
+            api_key=config.DASHSCOPE_API_KEY,
+            app_id=config.DASHSCOPE_MODEL_ID,
+            prompt=messages)
+            
+        if response.status_code == HTTPStatus.OK:
+            model_output_text = response.output.text
+            logger.debug(f"Raw LLM output: {model_output_text}")
+            
+            try:
+                # 尝试直接解析 JSON
+                parsed_output = json_module.loads(model_output_text)
+                logger.info("GeoJSON generated successfully")
+                return parsed_output
+            except json_module.JSONDecodeError as je:
+                logger.warning(f"Direct JSON parsing failed: {je}")
+                # 尝试提取代码块中的 JSON
+                json_match = re.search(r'```(?:json)?\s*({.*?})\s*```', model_output_text, re.DOTALL)
+                if json_match:
+                    try:
+                        extracted_json_str = json_match.group(1)
+                        parsed_output = json_module.loads(extracted_json_str)
+                        logger.info("GeoJSON parsed successfully from code block.")
+                        return parsed_output
+                    except json_module.JSONDecodeError as je2:
+                        error_msg = f"Failed to parse JSON from code block: {je2}. Raw output: {model_output_text}"
+                        logger.error(error_msg)
+                        raise Exception(error_msg)
+                else:
+                    error_msg = f"无法从模型输出中解析出有效的 GeoJSON: {model_output_text}"
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
+        else:
+            error_message = f'调用 DashScope 失败: {response.code}, {response.message}'
+            logger.error(error_message)
             raise Exception(error_message)
 
     except Exception as e:

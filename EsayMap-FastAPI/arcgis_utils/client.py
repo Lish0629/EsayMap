@@ -52,6 +52,7 @@ def execute_geometry_operation(
     if 'geometries' in esri_geometries:
         # ArcGIS REST API 期望几何数据作为 'geometries' 参数的 JSON 字符串值
         query_params['geometries'] = json.dumps(esri_geometries, separators=(',', ':')) # 使用紧凑格式
+        query_params['polygons'] = json.dumps(esri_geometries['geometries'], separators=(',', ':'))
     else:
         logger.error("Missing 'geometries' array in esri_geometries")
         raise ValueError("Missing 'geometries' array in esri_geometries")

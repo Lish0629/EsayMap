@@ -36,7 +36,32 @@ export function useUpload() {
       return { success: false };
     }
   }
-
+  // 新增：将 GeoJSON 对象转换为文件并上传
+  async function uploadGeoJsonAsFile(geojsonData, filename = 'result.geojson') {
+    try {
+      // 将 GeoJSON 对象转换为 JSON 字符串
+      const geojsonString = JSON.stringify(geojsonData, null, 2);
+      
+      // 创建 Blob 对象
+      const blob = new Blob([geojsonString], {
+        type: 'application/geo+json'
+      });
+      
+      // 创建 File 对象
+      const file = new File([blob], filename, {
+        type: 'application/geo+json'
+      });
+      
+      // 上传文件
+      const result = await uploadFileToServer(file);
+      return result;
+      
+    } catch (error) {
+      console.error('GeoJSON 转文件并上传时出错:', error);
+      alert(`上传失败: ${error.message}`);
+      return { success: false };
+    }
+  }
   async function handleFileUpload(file) {
     const name = file.name.toLowerCase()
     const uploadResult = await uploadFileToServer(file);
@@ -57,5 +82,5 @@ export function useUpload() {
       alert('仅支持 .geojson文件')
     }
   }
-  return { handleFileUpload }
+  return { handleFileUpload, uploadFileToServer,uploadGeoJsonAsFile}
 }
