@@ -12,6 +12,7 @@ load_dotenv()
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
 # 从环境变量或 .env 文件获取模型/应用 ID
 DASHSCOPE_MODEL_ID = os.getenv("DASHSCOPE_MODEL_ID")
+DASHSCOPE_MODEL_ID_ADD = os.getenv("DASHSCOPE_MODEL_ID_ADD")
 
 # --- 修改：使用静态 Token ---
 ARCGIS_STATIC_TOKEN = os.getenv("ARCGIS_STATIC_TOKEN") # 从环境变量获取静态 token

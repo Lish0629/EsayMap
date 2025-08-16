@@ -1,11 +1,16 @@
 // src/composables/useUpload.js
 
-import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer'
-
+import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
+import UniqueValueRenderer from '@arcgis/core/renderers/UniqueValueRenderer';
+import SimpleMarkerSymbol from '@arcgis/core/symbols/SimpleMarkerSymbol';
+import SimpleLineSymbol from '@arcgis/core/symbols/SimpleLineSymbol';
+import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
 import { useMapStore } from '@/store/mapStore'
 import { markRaw } from 'vue'
 export function useUpload() {
   const layerStore = useMapStore()
+// 预定义颜色调色板
+  
   async function uploadFileToServer(file) {
     // 使用 FormData 来包装文件数据，这是文件上传的标准做法
     const formData = new FormData();
@@ -68,7 +73,11 @@ export function useUpload() {
     if (name.endsWith('.geojson')) {
       const url = URL.createObjectURL(file)
       console.log(url)
-      const layer = new GeoJSONLayer({ url, title: file.name, visible: true })
+      const layer = new GeoJSONLayer({
+        url: url,
+        title: file.name,
+        visible: true,
+      });
       layerStore.addLayer({
         id: file.name,
         title: file.name,

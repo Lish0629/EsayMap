@@ -184,23 +184,34 @@ def generate_geojson_from_llm(user_query: str) -> dict:
         user_query (str): 用户关于要添加要素的描述
         
     Returns:
-        dict: 生成的GeoJSON对象
+        dict: 包含GeoJSON数据和文件名的字典
     """
     # 构造提示词让大模型生成GeoJSON
     system_prompt = """
     你是一个地理空间数据专家。用户会描述想要添加到地图上的地理要素，
     你需要根据描述生成标准的GeoJSON格式数据。
-    
+    找到最重要的位置，并生成最合适的要素类型。
     要求：
-    1. 严格按照GeoJSON格式返回
+    1. 严格按照GeoJSON格式返回，或者返回一个可访问的GeoJSON文件URL
     2. 支持点(Point)、线(LineString)、面(Polygon)、多点(MultiPoint)、多线(MultiLineString)、多面(MultiPolygon)等几何类型
     3. 坐标使用WGS84坐标系(经纬度)
     4. 可以包含适当的属性字段
     5. 只返回有效的JSON，不要包含任何解释文字或代码块标记
+    6. 返回格式必须是以下结构：
+       {
+         "type": "json" 或 "url",
+         "data": GeoJSON对象或URL地址,
+         "filename": "英文文件名（不包含扩展名，只包含字母数字下划线）"
+       }
+    
+    文件名要求：
+    - 使用英文描述要素内容
+    - 只包含字母、数字、下划线
+    - 不要包含空格、中文、特殊符号
+    - 不要包含扩展名（.geojson）
+    - 例如：park_area, river_line, building_polygon
     
     GeoJSON格式示例：
-    
-    
     
     要素集合示例：
     {
@@ -222,7 +233,14 @@ def generate_geojson_from_llm(user_query: str) -> dict:
       ]
     }
     
-    请根据用户的描述生成相应的GeoJSON数据。
+    返回示例：
+    {
+      "type": "json",
+      "data": {完整的GeoJSON对象},
+      "filename": "central_park_area"
+    }
+    
+    请根据用户的描述生成相应的GeoJSON数据和合适的英文文件名。
     """
     
     messages = [
@@ -246,8 +264,50 @@ def generate_geojson_from_llm(user_query: str) -> dict:
             try:
                 # 尝试直接解析 JSON
                 parsed_output = json_module.loads(model_output_text)
-                logger.info("GeoJSON generated successfully")
-                return parsed_output
+                logger.info("LLM output parsed successfully")
+                
+                # 检查返回的数据类型
+                if isinstance(parsed_output, dict) and 'type' in parsed_output:
+                    result = {}
+                    
+                    # 提取文件名
+                    filename = parsed_output.get('filename', 'feature')
+                    # 清理文件名，确保只包含字母数字下划线
+                    import re
+                    clean_filename = re.sub(r'[^a-zA-Z0-9_]', '', filename)
+                    if not clean_filename:
+                        clean_filename = 'feature'
+                    result['filename'] = clean_filename
+                    
+                    if parsed_output['type'] == 'json':
+                        # 直接返回JSON数据
+                        logger.info("Returning direct GeoJSON data")
+                        result['geojson'] = parsed_output['data']
+                        return result
+                    elif parsed_output['type'] == 'url':
+                        # 从URL获取GeoJSON数据
+                        import requests
+                        url = parsed_output['data']
+                        logger.info(f"Fetching GeoJSON from URL: {url}")
+                        geojson_response = requests.get(url, timeout=30)
+                        geojson_response.raise_for_status()
+                        geojson_data = geojson_response.json()
+                        logger.info("Successfully fetched GeoJSON from URL")
+                        result['geojson'] = geojson_data
+                        return result
+                    else:
+                        # 未知类型，直接返回原始数据
+                        logger.warning(f"Unknown response type: {parsed_output['type']}")
+                        result['geojson'] = parsed_output
+                        return result
+                else:
+                    # 传统格式，直接返回，使用默认文件名
+                    logger.info("Returning traditional format GeoJSON")
+                    return {
+                        'geojson': parsed_output,
+                        'filename': 'feature'
+                    }
+                    
             except json_module.JSONDecodeError as je:
                 logger.warning(f"Direct JSON parsing failed: {je}")
                 # 尝试提取代码块中的 JSON
@@ -257,7 +317,10 @@ def generate_geojson_from_llm(user_query: str) -> dict:
                         extracted_json_str = json_match.group(1)
                         parsed_output = json_module.loads(extracted_json_str)
                         logger.info("GeoJSON parsed successfully from code block.")
-                        return parsed_output
+                        return {
+                            'geojson': parsed_output,
+                            'filename': 'feature'
+                        }
                     except json_module.JSONDecodeError as je2:
                         error_msg = f"Failed to parse JSON from code block: {je2}. Raw output: {model_output_text}"
                         logger.error(error_msg)

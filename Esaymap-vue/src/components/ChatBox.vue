@@ -158,18 +158,14 @@ const sendMessage = async () => {
         },
         body: JSON.stringify({ query: userMessage })
       });
-      const data = await response.json();
-      console.log(data)
-      if (data.success) {
+      const res = await response.json();
+      console.log(res)
+      if (res.success) {
         // --- 处理后端返回的数据 ---
         
-        const geojson=data.data.geojson
+        const geojson=res.data.geojson.geojson
         const geojsonString = JSON.stringify(geojson, null, 2);
-        const filename = "generated.geojson"
-        if (geojson.properties.name){
-          filename = getFirstLetters(geojson.properties.name)+".geojson"
-        }
-        
+        const filename = res.data.geojson.filename+'.geojson'
         // 创建 Blob 对象
         const blob = new Blob([geojsonString], {
           type: 'application/geo+json'
@@ -182,15 +178,15 @@ const sendMessage = async () => {
         handleFileUpload(file)
         let botMessage = {
           role: 'bot',
-          text: data.message+filename || '操作成功完成。'
+          text: res.message+filename || '操作成功完成。'
         };
         chatStore.addMessage(botMessage)
         // --- 结束处理 ---
       } else {
         chatStore.addMessage({
           role: 'bot',
-          text: data.message || '处理请求时发生错误。',
-          error: data.error || '未知错误'
+          text: res.message || '处理请求时发生错误。',
+          error: res.error || '未知错误'
         });
       }
     }
