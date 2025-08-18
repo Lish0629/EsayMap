@@ -1,0 +1,26 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "路线",
+        "distance": "3059米",
+        "duration": "547秒"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            119.728224,
+            30.256632
+          ],
+          [
+            119.728513,
+            30.237395
+          ]
+        ]
+      }
+    }
+  ]
+}

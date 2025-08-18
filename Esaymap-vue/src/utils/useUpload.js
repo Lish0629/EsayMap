@@ -9,8 +9,7 @@ import { useMapStore } from '@/store/mapStore'
 import { markRaw } from 'vue'
 export function useUpload() {
   const layerStore = useMapStore()
-// 预定义颜色调色板
-  
+
   async function uploadFileToServer(file) {
     // 使用 FormData 来包装文件数据，这是文件上传的标准做法
     const formData = new FormData();

@@ -2,10 +2,11 @@
 <template>
   <v-app>
     <!-- 可选顶部导航栏 -->
+     <!--
     <v-app-bar flat color="white" class="rounded-xl mx-2 mt-2" elevation="2">
       <v-toolbar-title class="text-h6">🗺️ EsayMap 文言易图</v-toolbar-title>
     </v-app-bar>
-
+-->
     <!-- 主体内容区域 -->
     <v-main>
       <router-view />

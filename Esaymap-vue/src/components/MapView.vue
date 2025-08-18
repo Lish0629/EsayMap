@@ -38,6 +38,7 @@ onMounted(() => {
   const tdLayer = new WebTileLayer({
     urlTemplate:
       'http://{subDomain}.tianditu.gov.cn/DataServer?T=vec_w&x={col}&y={row}&l={level}&tk=9aa49772a6d157afe863294b50b104a3',
+      //https://webrd04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}
     subDomains: ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'],
     id: 'tdLayer',
     title: '天地图矢量',
@@ -54,43 +55,39 @@ onMounted(() => {
     visible: true,
     opacity: 1
   })
-
+  //高德地图底图
+  const gaodeLayer = new WebTileLayer({
+    urlTemplate:
+      'https://webrd03.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}',
+    subDomains: ['1', '2', '3', '4'],
+    id: 'gaodeLayer',
+    title: '高德矢量底图',
+  })
   mapStore.addLayer({
-    id: tdLayer.id,
-    title: tdLayer.title,
-    visible: tdLayer.visible,
-    opacity: tdLayer.opacity,
+    id: gaodeLayer.id,
+    title: gaodeLayer.title,
+    visible: gaodeLayer.visible,
+    opacity: gaodeLayer.opacity,
     type: 'basemap',
-    instance: markRaw(tdLayer)
+    instance: markRaw(gaodeLayer)
   })
+  // mapStore.addLayer({
+  //   id: tdLayer.id,
+  //   title: tdLayer.title,
+  //   visible: tdLayer.visible,
+  //   opacity: tdLayer.opacity,
+  //   type: 'basemap',
+  //   instance: markRaw(tdLayer)
+  // })
 
-  mapStore.addLayer({
-    id: tdLayer_POI.id,
-    title: tdLayer_POI.title,
-    visible: tdLayer_POI.visible,
-    opacity: tdLayer_POI.opacity,
-    type: 'basemap',
-    instance: markRaw(tdLayer_POI)
-  })
-
-  const arcgis = geojsonToArcGIS({
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "properties": {
-        "name": "测试点",
-        "description": "这是一个用于测试的GeoJSON点"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [120.51959, 35.290270]
-      }
-    }
-  ]
-  })
-
-  console.log(arcgis)
+  // mapStore.addLayer({
+  //   id: tdLayer_POI.id,
+  //   title: tdLayer_POI.title,
+  //   visible: tdLayer_POI.visible,
+  //   opacity: tdLayer_POI.opacity,
+  //   type: 'basemap',
+  //   instance: markRaw(tdLayer_POI)
+  // })
 
 })
 

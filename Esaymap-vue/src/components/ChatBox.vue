@@ -99,7 +99,7 @@ import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 import { useMapStore } from '@/store/mapStore'; 
 import { useChatStore } from '@/store/chatStore'
 import { arcgisToGeoJSON } from '@esri/arcgis-to-geojson-utils';
-import { toGeoJson } from '@/utils/toGeoJson'
+import { toGeoJson } from '@/utils/toGeojson'
 
 import { pinyin } from 'pinyin-pro';
 const mapStore = useMapStore();

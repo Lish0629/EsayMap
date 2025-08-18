@@ -1,5 +1,9 @@
 <template>
+  
   <v-card class="d-flex flex-column h-100 rounded-xl pa-2" elevation="2">
+    <div class="head-container">
+      
+    </div>
     <!-- 当前面板主体 -->
     <div class="flex-grow-1 overflow-y-auto pr-2">
       <ChatBox v-if="activePanel === 'chat'" />

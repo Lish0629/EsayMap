@@ -15,7 +15,7 @@ dashscope.api_key = config.DASHSCOPE_API_KEY
 
 # --- 配置日志 ---
 logger = logging.getLogger(__name__)
-
+#获取文件列表
 def get_available_geojson_files() -> List[str]:
     """
     获取 data 目录下所有 .geojson 文件的文件名列表。
@@ -35,7 +35,7 @@ def get_available_geojson_files() -> List[str]:
     except Exception as e:
         logger.error(f"读取 data 目录文件列表时出错: {e}")
         return [] # 出错时返回空列表
-
+#地理分析大模型
 def call_dashscope_app(user_query: str) -> Optional[LLMOutput]:
     """
     使用 DashScope SDK 调用阿里云百炼平台的应用处理用户查询。
@@ -176,6 +176,7 @@ def call_dashscope_app(user_query: str) -> Optional[LLMOutput]:
     except Exception as e:
         logger.error(f"Error calling DashScope SDK: {e}")
         raise e
+#添加要素大模型
 def generate_geojson_from_llm(user_query: str) -> dict:
     """
     调用大模型生成GeoJSON要素。
@@ -190,14 +191,13 @@ def generate_geojson_from_llm(user_query: str) -> dict:
     system_prompt = """
     你是一个地理空间数据专家。用户会描述想要添加到地图上的地理要素，
     你需要根据描述生成标准的GeoJSON格式数据。
-    找到最重要的位置，并生成最合适的要素类型。
     要求：
     1. 严格按照GeoJSON格式返回，或者返回一个可访问的GeoJSON文件URL
     2. 支持点(Point)、线(LineString)、面(Polygon)、多点(MultiPoint)、多线(MultiLineString)、多面(MultiPolygon)等几何类型
     3. 坐标使用WGS84坐标系(经纬度)
     4. 可以包含适当的属性字段
-    5. 只返回有效的JSON，不要包含任何解释文字或代码块标记
-    6. 返回格式必须是以下结构：
+    6. 对于路径规划，只需要返回路径的线要素即可
+    7. 返回格式必须是以下结构：
        {
          "type": "json" 或 "url",
          "data": GeoJSON对象或URL地址,
@@ -211,27 +211,7 @@ def generate_geojson_from_llm(user_query: str) -> dict:
     - 不要包含扩展名（.geojson）
     - 例如：park_area, river_line, building_polygon
     
-    GeoJSON格式示例：
     
-    要素集合示例：
-    {
-      "type": "FeatureCollection",
-      "features": [
-        {
-          "type": "Feature",
-          "properties": {"name": "点1"},
-          "geometry": {"type": "Point", "coordinates": [120.0, 30.0]}
-        },
-        {
-          "type": "Feature", 
-          "properties": {"name": "线1"},
-          "geometry": {
-            "type": "LineString", 
-            "coordinates": [[120.0, 30.0], [121.0, 31.0]]
-          }
-        }
-      ]
-    }
     
     返回示例：
     {
@@ -247,20 +227,21 @@ def generate_geojson_from_llm(user_query: str) -> dict:
         {'role': 'system', 'content': system_prompt},
         {'role': 'user', 'content': user_query}
     ]
-    
+    prompt_text = f"{system_prompt}\n\nUser: {user_query}"
+
     logger.info(f"Calling DashScope to generate GeoJSON for: {user_query}")
 
     try:
         # 调用 DashScope Generation API
         response = Application.call(
             api_key=config.DASHSCOPE_API_KEY,
-            app_id=config.DASHSCOPE_MODEL_ID,
-            prompt=messages)
+            app_id="bcb140c357f04b68a7ef34a3c2e7c188",
+            prompt=prompt_text)
             
         if response.status_code == HTTPStatus.OK:
             model_output_text = response.output.text
             logger.debug(f"Raw LLM output: {model_output_text}")
-            
+            logger.debug(f"LLM output{response}")
             try:
                 # 尝试直接解析 JSON
                 parsed_output = json_module.loads(model_output_text)
@@ -273,7 +254,7 @@ def generate_geojson_from_llm(user_query: str) -> dict:
                     # 提取文件名
                     filename = parsed_output.get('filename', 'feature')
                     # 清理文件名，确保只包含字母数字下划线
-                    import re
+
                     clean_filename = re.sub(r'[^a-zA-Z0-9_]', '', filename)
                     if not clean_filename:
                         clean_filename = 'feature'
