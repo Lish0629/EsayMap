@@ -1,8 +1,10 @@
 <script setup>
 import { useMapStore } from '@/store/mapStore'
+import { defineProps } from 'vue'
 defineProps({ layer: Object })
 
 const mapStore = useMapStore()
+
 </script>
 
 <template>

@@ -4,9 +4,8 @@ from pathlib import Path  # 导入Path模块用于处理路径
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException, UploadFile, File
 import logging
-import traceback
-import logging
 import shutil  # 导入shutil用于文件操作
+from fastapi.staticfiles import StaticFiles
 
 # --- 配置日志 ---
 logging.basicConfig(
@@ -23,8 +22,10 @@ from converters.geojson_to_esri import process_geojson_file_to_esri
 from arcgis_utils.client import execute_geometry_operation
 
 app = FastAPI(title="EasyMap GeoProcessor API", version="1.0.0")
+
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True) # 确保data文件夹存在
+app.mount("/data", StaticFiles(directory=DATA_DIR), name="data_files")
 # --- 配置 CORS (如果前端从不同源访问) ---
 # 允许所有来源 (仅用于开发，生产环境请具体配置)
 app.add_middleware(

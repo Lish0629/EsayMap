@@ -1,21 +1,3 @@
-<script setup>
-import { ref } from 'vue'
-
-import LayerWrapper from './layers/LayerWrapper.vue'
-import { useMapStore } from '@/store/mapStore'
-const mapStore = useMapStore ()
-
-const expanded = ref({})
-
-function toggleExpand(id) {
-  expanded.value[id] = !expanded.value[id]
-}
-
-function toggleVisible(layer) {
-  mapStore.updateVisibility(layer.id, !layer.visible)
-}
-</script>
-
 <template>
   <div class="pa-4">
     <v-list density="compact" class="bg-white">
@@ -59,7 +41,23 @@ function toggleVisible(layer) {
     </v-list>
   </div>
 </template>
+<script setup>
+import { ref } from 'vue'
 
+import LayerWrapper from './layers/LayerWrapper.vue'
+import { useMapStore } from '@/store/mapStore'
+const mapStore = useMapStore ()
+
+const expanded = ref({})
+
+function toggleExpand(id) {
+  expanded.value[id] = !expanded.value[id]
+}
+
+function toggleVisible(layer) {
+  mapStore.updateVisibility(layer.id, !layer.visible)
+}
+</script>
 <style scoped>
 .v-list {
   max-height: 80vh;

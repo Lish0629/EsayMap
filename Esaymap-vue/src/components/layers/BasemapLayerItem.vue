@@ -2,6 +2,7 @@
 import { useMapStore } from '@/store/mapStore'
 const mapStore = useMapStore()
 defineProps({ layer: Object })
+
 </script>
 
 <template>
@@ -19,7 +20,7 @@ defineProps({ layer: Object })
       step="0.01"
       label="透明度"
       class="mt-2"
-      @change="mapStore.updateOpacity(layer.id, layer.opacity)"
+      @update:modelValue="mapStore.updateOpacity(layer.id,$event)"
     />
   </div>
 </template>

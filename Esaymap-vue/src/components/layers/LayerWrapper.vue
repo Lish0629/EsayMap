@@ -2,10 +2,11 @@
 import VectorLayerItem from './VectorLayerItem.vue'
 import RasterLayerItem from './RasterLayerItem.vue'
 import BasemapLayerItem from './BasemapLayerItem.vue'
-
+import { defineProps } from 'vue'
 defineProps({
   layer: Object
 })
+
 </script>
 
 <template>

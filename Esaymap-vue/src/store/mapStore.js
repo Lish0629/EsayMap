@@ -66,6 +66,7 @@ export const useMapStore = defineStore('mapStore', () => {
       layer.visible = visible
       if (layer.instance) layer.instance.visible = visible
     }
+
   }
 
   const updateOpacity = (id, opacity) => {
