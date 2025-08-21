@@ -1,7 +1,6 @@
 // src/composables/useUpload.js
-
 import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
-import UniqueValueRenderer from '@arcgis/core/renderers/UniqueValueRenderer';
+import SimpleRenderer from '@arcgis/core/renderers/SimpleRenderer';
 import SimpleMarkerSymbol from '@arcgis/core/symbols/SimpleMarkerSymbol';
 import SimpleLineSymbol from '@arcgis/core/symbols/SimpleLineSymbol';
 import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
@@ -9,7 +8,17 @@ import { useMapStore } from '@/store/mapStore'
 import { markRaw } from 'vue'
 export function useUpload() {
   const layerStore = useMapStore()
-
+  const mutedColorPalette = [
+    [102, 153, 153],   // 雾霭青
+    [140, 130, 180],   // 灰紫蓝
+    [160, 140, 120],   // 大地棕
+    [135, 160, 130],   // 灰绿
+    [170, 150, 180],   // 暮光粉
+    [120, 140, 160],   // 冷灰蓝
+    [150, 150, 130],   // 橄榄灰
+    [130, 150, 170]    // 浅钢蓝
+  ];
+  let colorIndex = 0;
   async function uploadFileToServer(file) {
     // 使用 FormData 来包装文件数据，这是文件上传的标准做法
     const formData = new FormData();
@@ -69,6 +78,12 @@ export function useUpload() {
   async function handleFileUpload(file) {
     const name = file.name.toLowerCase()
     const uploadResult = await uploadFileToServer(file);
+    
+    const geometryType = await readGeoJSONAndGetGeometryType(file);
+    console.log('Geometry Type:', geometryType);
+
+    const renderer = createRendererByGeometryType(geometryType);
+
     if (name.endsWith('.geojson')) {
       const url = URL.createObjectURL(file)
       console.log(url)
@@ -76,6 +91,7 @@ export function useUpload() {
         url: url,
         title: file.name,
         visible: true,
+        ...(renderer && { renderer }) 
       });
       layerStore.addLayer({
         id: file.name,
@@ -85,10 +101,99 @@ export function useUpload() {
         type: 'vector',
         instance: markRaw(layer)
       })
-
       } else {
       alert('仅支持 .geojson文件')
     }
+  }
+  function readGeoJSONAndGetGeometryType(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+  
+      reader.onload = (event) => {
+        try {
+          const json = JSON.parse(event.target.result);
+  
+          // 提取几何类型
+          let type = null;
+  
+          if (json.type === 'FeatureCollection' && Array.isArray(json.features) && json.features.length > 0) {
+            type = json.features[0].geometry?.type;
+          } else if (json.type === 'Feature') {
+            type = json.geometry?.type;
+          } else if (['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon'].includes(json.type)) {
+            type = json.type;
+          }
+  
+          if (!type) {
+            return resolve(null); // 无有效几何
+          }
+  
+          // 标准化为 ArcGIS 风格的小写基础类型
+          const normalizedType = type.startsWith('Multi') 
+            ? type.slice(5).toLowerCase() 
+            : type.toLowerCase();
+  
+          // 映射为 ArcGIS layer.geometryType 风格
+          const arcgisTypeMap = {
+            point: 'point',
+            linestring: 'polyline',
+            polygon: 'polygon'
+          };
+  
+          resolve(arcgisTypeMap[normalizedType] || null);
+        } catch (e) {
+          console.error('解析 GeoJSON 失败', e);
+          resolve(null); // 解析失败返回 null
+        }
+      };
+  
+      reader.onerror = () => {
+        console.error('文件读取失败', reader.error);
+        resolve(null);
+      };
+  
+      reader.readAsText(file);
+    });
+  }
+  function createRendererByGeometryType(type) {
+    const color = mutedColorPalette[colorIndex];
+    colorIndex = (colorIndex + 1) % mutedColorPalette.length;
+    let symbol;
+    switch (type) {
+      case 'point':
+        symbol = new SimpleMarkerSymbol({
+          color: color,
+          size: 8,
+          style: 'circle',
+          outline: {
+            color: [200, 200, 200],
+            width: 1.5
+          }
+        });
+        break;
+
+      case 'polyline':
+        symbol = new SimpleLineSymbol({
+          color: color,
+          width: 3
+        });
+        break;
+
+      case 'polygon':
+        symbol = new SimpleFillSymbol({
+          color: [...color, 0.6], // 半透明填充
+          outline: {
+            color: [80, 80, 80],  // 深灰边框，清晰但不突兀
+            width: 1.8
+          }
+        });
+        break;
+
+      default:
+        return null;
+    }
+
+    return new SimpleRenderer({ symbol });
   }
   return { handleFileUpload, uploadFileToServer,uploadGeoJsonAsFile}
 }
