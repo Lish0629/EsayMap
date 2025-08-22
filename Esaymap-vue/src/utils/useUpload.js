@@ -5,7 +5,7 @@ import SimpleMarkerSymbol from '@arcgis/core/symbols/SimpleMarkerSymbol';
 import SimpleLineSymbol from '@arcgis/core/symbols/SimpleLineSymbol';
 import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
 import { useMapStore } from '@/store/mapStore'
-import { markRaw } from 'vue'
+import { markRaw, render } from 'vue'
 export function useUpload() {
   const layerStore = useMapStore()
   const mutedColorPalette = [
@@ -81,8 +81,8 @@ export function useUpload() {
     
     const geometryType = await readGeoJSONAndGetGeometryType(file);
     console.log('Geometry Type:', geometryType);
-
-    const renderer = createRendererByGeometryType(geometryType);
+    const rcolor=createRandomColor();
+    const renderer = createRendererByGeometryType(rcolor,geometryType);
 
     if (name.endsWith('.geojson')) {
       const url = URL.createObjectURL(file)
@@ -91,13 +91,15 @@ export function useUpload() {
         url: url,
         title: file.name,
         visible: true,
+        opacity:0.8,
         ...(renderer && { renderer }) 
       });
       layerStore.addLayer({
         id: file.name,
         title: file.name,
         visible: true,
-        opacity: 1,
+        opacity: 0.8,
+        color:rcolor,
         type: 'vector',
         instance: markRaw(layer)
       })
@@ -155,9 +157,13 @@ export function useUpload() {
       reader.readAsText(file);
     });
   }
-  function createRendererByGeometryType(type) {
+  function createRandomColor() {
     const color = mutedColorPalette[colorIndex];
     colorIndex = (colorIndex + 1) % mutedColorPalette.length;
+    return color;
+  }
+  function createRendererByGeometryType(color,type) {
+
     let symbol;
     switch (type) {
       case 'point':

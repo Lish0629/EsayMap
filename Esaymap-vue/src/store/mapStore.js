@@ -81,7 +81,32 @@ export const useMapStore = defineStore('mapStore', () => {
     const layer = layers.value.find(l => l.id === id)
     if (layer) layer.title = title
   }
+  const updateColor = (id, color) => {
+    const layer = layers.value.find(l => l.id === id)
+    if (!layer || !layer.instance || !layer.instance.renderer) return
 
+    let rgb
+    if (Array.isArray(color)) {
+      rgb = color // 直接使用
+    } else if (color && color.r !== undefined) {
+      rgb = [color.r, color.g, color.b] // 对象转数组
+    } else {
+      return // 无效颜色，不处理
+    }
+
+    layer.color = rgb // 更新状态
+    // 更新 ArcGIS 图层渲染器
+    const symbol = layer.instance.renderer.symbol
+
+    if (symbol.type === 'simple-marker') {
+      symbol.color = color
+    } else if (symbol.type === 'simple-line') {
+      symbol.color = color
+    } else if (symbol.type === 'simple-fill') {
+      const alpha = symbol.color ? symbol.color[3] : 0.6
+      symbol.color = [...color,alpha]
+    }
+  }
   return {
     mapView,
     layers,
@@ -90,6 +115,7 @@ export const useMapStore = defineStore('mapStore', () => {
     removeLayer,
     updateVisibility,
     updateOpacity,
-    updateTitle
+    updateTitle,
+    updateColor
   }
 })

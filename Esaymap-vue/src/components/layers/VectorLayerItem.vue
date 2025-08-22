@@ -1,5 +1,46 @@
+<template>
+  <div class="pl-6 pr-2 pt-2">
+    <v-text-field
+      v-model="layer.title"
+      label="图层名称"
+      density="compact"
+      @change="mapStore.updateTitle(layer.id, layer.title)"
+    />
+    <v-slider
+      v-model="layer.opacity"
+      min="0"
+      max="1"
+      step="0.01"
+      label="透明度"
+      class="mt-2"
+      @update:modelValue="mapStore.updateOpacity(layer.id,$event)"
+    />
+    <div class="mt-3 mb-2 d-flex justify-center align-center">
+      <v-color-picker 
+        
+        v-model="ccolor"
+        mode="rgb"
+        size="small"
+        hide-canvas hide-inputs
+        hide-mode-btn
+        class="custom-color-picker"
+        @update:modelValue="handleColorUpdate"
+      />
+    </div>
+    <v-btn
+      icon="mdi-download"
+      variant="text"
+      size="small"
+      class="mx-1 custom-btn-margin"
+      @click="exportGeoJsonFile"
+    >
+    </v-btn>
+  </div>
+</template>
+
 <script setup>
-import { defineProps } from 'vue'
+import { defineProps, onMounted,ref} from 'vue'
+import { ColorAdapter } from '@/utils/color';
 const props = defineProps({ 
   layer: {
     type: Object,
@@ -10,6 +51,12 @@ import { useMapStore } from '@/store/mapStore'
 import { useChatStore } from '@/store/chatStore'
 const chatStore = useChatStore ()
 const mapStore = useMapStore ()
+const ccolor = ref(ColorAdapter.arrayToObj(props.layer.color))
+// 颜色变化处理
+const handleColorUpdate = (colorObj) => {
+  const rgbArray = ColorAdapter.objToArray(colorObj)
+  mapStore.updateColor(props.layer.id, rgbArray)
+}
 
 const exportGeoJsonFile = async() => {
   try {
@@ -72,33 +119,19 @@ const exportGeoJsonFile = async() => {
     alert(`导出失败: ${error.message}`);
   }
 }
-</script>
 
-<template>
-  <div class="pl-6 pr-2 pt-2">
-    <v-text-field
-      v-model="layer.title"
-      label="图层名称"
-      density="compact"
-      @change="mapStore.updateTitle(layer.id, layer.title)"
-    />
-    <v-slider
-      v-model="layer.opacity"
-      min="0"
-      max="1"
-      step="0.01"
-      label="透明度"
-      class="mt-2"
-      @update:modelValue="mapStore.updateOpacity(layer.id,$event)"
-    />
-    <v-btn
-      small
-      outlined
-      class="mt-2"
-      @click="exportGeoJsonFile"
-    >
-      <v-icon left>mdi-download</v-icon>
-      导出 GeoJSON
-    </v-btn>
-  </div>
-</template>
+onMounted(()=>{
+  console.log(ColorAdapter.arrayToObj(props.layer.color))
+})
+</script>
+<style scoped>
+.custom-btn-margin {
+  margin-top: 0px !important;
+  margin-bottom: 6px !important;
+}
+.custom-color-picker {
+  width: 95% !important;
+  
+  height: 68px;
+}
+</style>
