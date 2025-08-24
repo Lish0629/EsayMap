@@ -10,7 +10,7 @@ class ProcessResponse(BaseModel):
     message: str
     data: Optional[Dict[str, Any]] = None # ArcGIS Server 返回的最终结果
     error: Optional[str] = None # 错误信息（如果有的话）
-
+    type : str
 class LLMOutput(BaseModel):
     """
     大模型解析用户请求后返回的结构化信息。
@@ -19,3 +19,4 @@ class LLMOutput(BaseModel):
     filename: str
     operation: str
     parameters: Dict[str, Any]
+    

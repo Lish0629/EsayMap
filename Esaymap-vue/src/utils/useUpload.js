@@ -201,5 +201,5 @@ export function useUpload() {
 
     return new SimpleRenderer({ symbol });
   }
-  return { handleFileUpload, uploadFileToServer,uploadGeoJsonAsFile}
+  return { handleFileUpload, uploadFileToServer,uploadGeoJsonAsFile,createRendererByGeometryType,createRandomColor}
 }

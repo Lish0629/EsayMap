@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick,markRaw } from 'vue'
+import { ref, onMounted, nextTick,markRaw, render } from 'vue'
 import { useUpload } from '@/utils/useUpload'
 import Graphic from '@arcgis/core/Graphic'
 
@@ -102,6 +102,8 @@ import { arcgisToGeoJSON } from '@esri/arcgis-to-geojson-utils';
 import { toGeoJson } from '@/utils/toGeojson'
 
 import { pinyin } from 'pinyin-pro';
+
+
 const mapStore = useMapStore();
 const chatStore = useChatStore();
 const input = ref('')
@@ -111,7 +113,7 @@ const messages = chatStore.messages // 引用 Store 中的 messages
 
 const scrollContainer = ref(null)
 const fileInput = ref(null)
-const { handleFileUpload,uploadGeoJsonAsFile } = useUpload()
+const { handleFileUpload,uploadGeoJsonAsFile ,createRendererByGeometryType,createRandomColor} = useUpload()
 
 // --- 后端 API 地址 ---
 // 请根据您的 FastAPI 服务实际运行地址修改
@@ -213,7 +215,7 @@ const sendMessage = async () => {
           if (data.data.geometries && Array.isArray(data.data.geometries)) {
             try {
               // 调用处理 ArcGIS JSON 几何的函数
-              await handleArcGISGeometryResult(data.data, userMessage);
+              await handleArcGISGeometryResult(data.data, userMessage,data.type);
               botMessage.text += " 结果已添加到地图。";
             } catch (layerError) {
               console.error("添加图层时出错:", layerError);
@@ -276,7 +278,7 @@ const sendMessage = async () => {
  * @param {Object} arcgisResultData 后端返回的 ArcGIS JSON 对象，例如 { geometries: [...], geometryType: "...", ... }
  * @param {string} userQuery 用户的原始查询，用于生成图层标题
  */
-async function handleArcGISGeometryResult(arcgisResultData, userQuery) {
+async function handleArcGISGeometryResult(arcgisResultData, userQuery,operationType) {
   
   const geometries = arcgisResultData.geometries;
   const geometryType = arcgisResultData.geometryType;
@@ -288,7 +290,7 @@ async function handleArcGISGeometryResult(arcgisResultData, userQuery) {
   console.log(geometries)
   const arcgisToGeojson=toGeoJson(arcgisResultData)
   console.log("转换后的 GeoJSON:", arcgisToGeojson);
-  const namePart = `Result${userQuery.substring(0, 20)}`
+  const namePart = `Result${operationType}${userQuery.substring(0, 20)}`
   .replace(/[\u4e00-\u9fa5]/g, '')  // 删除所有中文字符
   .replace(/[^a-zA-Z0-9]/g, '');    // 删除所有符号，只保留字母和数字
 
@@ -309,14 +311,21 @@ async function handleArcGISGeometryResult(arcgisResultData, userQuery) {
       // attributes: { id: i, ... }
     });
   })
+  const firstGraphic = graphics[0];
+  const geometryTypeForRender = firstGraphic.geometry.type;
+  const rcolor=createRandomColor();
+  const renderer = createRendererByGeometryType(rcolor,geometryTypeForRender);
+
   const featureLayer=new FeatureLayer({
-    title: `Result-${userQuery.substring(0, 10)}...`,
+    title: namePart,
     source:graphics,
     objectIdField: "Id", 
-        fields: [
-          { name: "Id", type: "oid" },
-          { name: "Name", type: "string" }
-        ]
+    opacity:0.8,
+    fields: [
+      { name: "Id", type: "oid" },
+      { name: "Name", type: "string" }
+    ],
+    ...(renderer&&{renderer})
   });
   if (graphics.length > 0) {
       // 3. 将 GraphicsLayer 添加到地图 Store
@@ -324,8 +333,9 @@ async function handleArcGISGeometryResult(arcgisResultData, userQuery) {
         id: `result_${Date.now()}`, // 生成唯一 ID
         title: featureLayer.title,
         visible: true,
-        opacity: 1,
-        type: 'graphics', // 定义一个类型，与你的 Store 逻辑匹配
+        opacity: 0.8,
+        color:rcolor,
+        type: 'vector', // 定义一个类型，与你的 Store 逻辑匹配
         instance: markRaw(featureLayer) // 使用 markRaw 包装 ArcGIS 对象
       });
       console.log(`成功添加包含 ${graphics.length} 个要素的结果图层`);

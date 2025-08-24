@@ -98,8 +98,17 @@ def call_dashscope_app(user_query: str) -> Optional[LLMOutput]:
     }
     }
 
+    用户请求："将 data/a.geojson data/b.geojson data/c.geojson 文件进行合并"
+    你的回复应为：
+    {
+    "filename": "a.geojson",
+    "operation": "union",
+    "parameters": {
+        "sr": 4326
+    }
+    }
     
-    对于缓冲区分析一定要规定bufferSR参数为投影坐标系的代码，否则会报错。
+    对于缓冲区分析一定要规定bufferSR参数为投影坐标系的代码，bufferSRw为3857，并且输出坐标系必须为4326，地理坐标系否则会报错。
 
     用户请求："计算data/shape.geojson 文件的面积"
     你的回复应为：

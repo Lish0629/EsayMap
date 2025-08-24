@@ -134,6 +134,7 @@ async def process_user_request(request: ProcessRequest):
             success=True,
             message=success_msg,
             data=arcgis_result,
+            type=llm_output.operation,
             llm_raw_response=llm_output
         )
 
