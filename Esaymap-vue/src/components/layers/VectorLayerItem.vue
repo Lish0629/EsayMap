@@ -27,24 +27,48 @@
         @update:modelValue="handleColorUpdate"
       />
     </div>
-    <v-btn
-      icon="mdi-download"
-      variant="text"
-      size="small"
-      class="mx-1 custom-btn-margin"
-      @click="exportGeoJsonFile"
-    >
-    </v-btn>
+    <div class="d-flex justify-space-between align-center">
+  <v-btn
+    icon="mdi-download"
+    variant="text"
+    size="small"
+    class="mx-1 custom-btn-margin"
+    @click="exportGeoJsonFile"
+  ></v-btn>
+
+  <v-btn
+    icon="mdi-delete"
+    variant="text"
+    size="small"
+    class="mx-1 custom-btn-margin mr-4"
+    color="error"
+    @click="dialog = true"
+  ></v-btn>
+  <v-dialog v-model="dialog" max-width="400">
+  <v-card>
+    <v-card-title class="text-h6"> 删除图层？ </v-card-title>
+    <v-card-text>
+      你确定要删除图层 "<strong>{{ layerTitle }}</strong>" 吗？
+      <br /><br />
+    </v-card-text>
+    <v-card-actions>
+      <v-spacer></v-spacer>
+      <v-btn variant="text" @click="dialog = false">取消</v-btn>
+      <v-btn color="error" variant="flat" @click="onConfirmDelete">确定删除</v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+</div>
   </div>
 </template>
 
 <script setup>
-import { defineProps, onMounted,ref} from 'vue'
+import { defineProps, onMounted,ref,computed} from 'vue'
 import { ColorAdapter } from '@/utils/color';
 const props = defineProps({ 
   layer: {
     type: Object,
-    required: true // 明确声明 layer 是必需的 prop
+    required: true
   } 
 });
 import { useMapStore } from '@/store/mapStore'
@@ -52,6 +76,19 @@ import { useChatStore } from '@/store/chatStore'
 const chatStore = useChatStore ()
 const mapStore = useMapStore ()
 const ccolor = ref(ColorAdapter.arrayToObj(props.layer.color))
+const dialog = ref(false)
+const layerTitle = computed(() => props.layer.title || `图层 ${props.layer.id}`)
+const onConfirmDelete = () => {
+  console.log("用户确认删除图层:", props.layer.id)
+  chatStore.addMessage({
+    role: 'system',
+    text: `用户确认删除图层 "${layerTitle.value}"（暂未执行真实删除）。`
+  })
+  // mapStore.removeLayer(props.layer.id)
+
+  // 关闭弹窗
+  dialog.value = false
+}
 // 颜色变化处理
 const handleColorUpdate = (colorObj) => {
   const rgbArray = ColorAdapter.objToArray(colorObj)
@@ -60,7 +97,7 @@ const handleColorUpdate = (colorObj) => {
 
 const exportGeoJsonFile = async() => {
   try {
-    // 1. 获取图层的标识符（假设使用 title，您也可以用 id）
+    // 1. 获取图层的标识符
     // 确保文件名以 .geojson 结尾
     let filename = props.layer.title || props.layer.id;
     if (!filename) {
@@ -70,7 +107,7 @@ const exportGeoJsonFile = async() => {
       filename += '.geojson';
     }
 
-    const backendBaseUrl = 'http://127.0.0.1:8000'; // 替换为您的 FastAPI 地址
+    const backendBaseUrl = 'http://127.0.0.1:8000';
     const fileUrl = `${backendBaseUrl}/data/${encodeURIComponent(filename)}`;
 
     console.log(`准备下载 GeoJSON 文件: ${fileUrl}`);
@@ -90,28 +127,22 @@ const exportGeoJsonFile = async() => {
       throw new Error(errorMsg);
     }
 
-    // 3. 获取响应的 Blob 对象
     const blob = await response.blob();
 
-    // 4. 创建一个指向该 Blob 的 URL
     const downloadUrl = URL.createObjectURL(blob);
 
-    // 5. 创建一个临时的 <a> 元素用于下载
     const link = document.createElement('a');
     link.href = downloadUrl;
-    link.download = filename; // 指定下载的文件名
-    link.style.display = 'none'; // 隐藏链接
+    link.download = filename;
+    link.style.display = 'none';
 
-    // 6. 将链接添加到 DOM，触发点击，然后清理
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    // 7. 释放之前创建的 Object URL，节省内存
     URL.revokeObjectURL(downloadUrl);
 
     console.log(`GeoJSON 文件下载成功: ${filename}`);
-    // 可选：在聊天记录或 UI 中通知用户
     chatStore.addMessage({ role: 'system', text: `图层 "${props.layer.title}" 的 GeoJSON 文件已开始下载。` });
 
   } catch (error) {

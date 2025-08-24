@@ -14,7 +14,6 @@ export const useChatStore = defineStore('chat', () => {
   // 保存 input 状态
   const input = ref('') 
 
-  // 定义修改状态的方法 (Actions)
   function addMessage(message) {
     messages.value.push(message)
   }
@@ -45,7 +44,6 @@ export const useChatStore = defineStore('chat', () => {
   return {
     messages,
     isLoading,
-    // 返回 input 状态和 action
     input, 
     setInput,
     clearInput,

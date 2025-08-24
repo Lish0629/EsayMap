@@ -67,8 +67,7 @@ function toggleVisible(layer) {
   border: 2px solid rgba(0, 0, 0, 0.2);
   margin-top: 6px;
   border-radius: 36px;
-  /*box-shadow: 0px 2px 1px -1px var(--v-shadow-key-umbra-opacity, rgba(0, 0, 0, 0.2)), 0px 1px 1px 0px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.14)), 0px 1px 3px 0px var(--v-shadow-key-ambient-opacity, rgba(0, 0, 0, 0.12));
-*/
+
 }
 .v-btn--variant-elevated{
  box-shadow: none;

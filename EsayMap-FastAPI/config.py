@@ -8,9 +8,10 @@ from dotenv import load_dotenv # 导入 dotenv
 load_dotenv()
 
 # --- 百炼大模型配置 ---
-# 从环境变量或 .env 文件获取 API Key
+# 从环境变量或 .env 文件获取
+# API Key
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
-# 从环境变量或 .env 文件获取模型/应用 ID
+# 模型/应用 ID
 DASHSCOPE_MODEL_ID = os.getenv("DASHSCOPE_MODEL_ID")
 DASHSCOPE_MODEL_ID_ADD = os.getenv("DASHSCOPE_MODEL_ID_ADD")
 
@@ -24,7 +25,7 @@ GEOMETRY_SERVICE_URL = os.getenv("GEOMETRY_SERVICE_URL", "https://gis.dev.local:
 
 # --- 强制要求关键配置 ---
 if not DASHSCOPE_API_KEY:
-    raise ValueError("请在 .env 文件中设置 DASHSCOPE_API_KEY")
+    raise ValueError("未在 .env 文件中设置 DASHSCOPE_API_KEY")
 
 if not DASHSCOPE_MODEL_ID:
-    raise ValueError("请在 .env 文件中设置 DASHSCOPE_MODEL_ID (即您的模型或应用标识)")
+    raise ValueError("未在 .env 文件中设置 DASHSCOPE_MODEL_ID")

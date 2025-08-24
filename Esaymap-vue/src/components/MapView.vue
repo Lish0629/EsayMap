@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch ,markRaw} from 'vue'
+import { onMounted, ref,markRaw} from 'vue'
 
 import '@arcgis/core/assets/esri/themes/light/main.css'
 import Map from '@arcgis/core/Map'
@@ -110,7 +110,7 @@ onMounted(() => {
   height: 92px;
   width: auto;
   position: absolute;
-  bottom: 0;  /* 距离包含块底部 0 像素 */
+  bottom: 0;
   right: 10px; 
 }
 </style>

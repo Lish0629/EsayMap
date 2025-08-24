@@ -115,8 +115,7 @@ const scrollContainer = ref(null)
 const fileInput = ref(null)
 const { handleFileUpload,uploadGeoJsonAsFile ,createRendererByGeometryType,createRandomColor} = useUpload()
 
-// --- 后端 API 地址 ---
-// 请根据您的 FastAPI 服务实际运行地址修改
+//后端 API 地址
 const API_BASE_URL = 'http://127.0.0.1:8000'
 const isAddFeatureMode = ref(false)
 function triggerFileInput() {
@@ -140,9 +139,9 @@ const scrollToBottom = () => {
   })
 }
 
-// --- 修改：sendMessage 函数 ---
+
 const sendMessage = async () => {
-  const userMessage = input.value.trim() // 从 Store 的 ref 获取值
+  const userMessage = input.value.trim()
   if (!userMessage || isLoading.value) return;
 
   chatStore.addMessage({ role: 'user', text: userMessage })
@@ -164,7 +163,6 @@ const sendMessage = async () => {
       console.log(res)
       if (res.success) {
         // --- 处理后端返回的数据 ---
-        
         const geojson=res.data.geojson.geojson
         const geojsonString = JSON.stringify(geojson, null, 2);
         const filename = res.data.geojson.filename+'.geojson'
@@ -183,7 +181,6 @@ const sendMessage = async () => {
           text: res.message+filename || '操作成功完成。'
         };
         chatStore.addMessage(botMessage)
-        // --- 结束处理 ---
       } else {
         chatStore.addMessage({
           role: 'bot',
@@ -277,6 +274,7 @@ const sendMessage = async () => {
  * 处理后端返回的 ArcGIS JSON 几何数据并将其作为新图层添加到地图
  * @param {Object} arcgisResultData 后端返回的 ArcGIS JSON 对象，例如 { geometries: [...], geometryType: "...", ... }
  * @param {string} userQuery 用户的原始查询，用于生成图层标题
+ * @param {string} operationType 添加图层的操作类型
  */
 async function handleArcGISGeometryResult(arcgisResultData, userQuery,operationType) {
   
@@ -343,18 +341,6 @@ async function handleArcGISGeometryResult(arcgisResultData, userQuery,operationT
       console.warn("没有有效的要素可以添加到结果图层。");
       throw new Error("几何数据转换失败，无法创建图层要素。");
   }
-};
-
-const getFirstLetters = (chineseText) => {
-  if (!chineseText) return '';
-  
-  const pinyinArray = pinyin(chineseText, { 
-    pattern: 'first',  // 只获取首字母
-    toneType: 'none',
-    type: 'array'
-  });
-  
-  return pinyinArray.join('');
 };
 
 onMounted(scrollToBottom)
