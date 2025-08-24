@@ -121,23 +121,23 @@ def convert_geojson_to_esri(geojson_data: Dict[str, Any]) -> Dict[str, Any]:
             raise ValueError("GeoJSON 数据中未找到有效的几何对象。")
             
         if geometry_type is None or geometry_type == 'esriGeometryNull':
-             # Fallback: 尝试从 FeatureSet 本身获取类型
-             fs_geom_type = getattr(feature_set, 'geometry_type', None)
-             if fs_geom_type:
-                 geom_type_map = {
-                    'Point': 'esriGeometryPoint',
-                    'MultiPoint': 'esriGeometryMultipoint',
-                    'LineString': 'esriGeometryPolyline',
-                    'MultiLineString': 'esriGeometryPolyline',
-                    'Polygon': 'esriGeometryPolygon',
-                    'MultiPolygon': 'esriGeometryPolygon'
-                 }
-                 geometry_type = geom_type_map.get(fs_geom_type, 'esriGeometryNull')
-                 
-             if geometry_type is None or geometry_type == 'esriGeometryNull':
-                 raise ValueError("无法确定几何类型。")
+            # Fallback: 尝试从 FeatureSet 本身获取类型
+            fs_geom_type = getattr(feature_set, 'geometry_type', None)
+            if fs_geom_type:
+                geom_type_map = {
+                'Point': 'esriGeometryPoint',
+                'MultiPoint': 'esriGeometryMultipoint',
+                'LineString': 'esriGeometryPolyline',
+                'MultiLineString': 'esriGeometryPolyline',
+                'Polygon': 'esriGeometryPolygon',
+                'MultiPolygon': 'esriGeometryPolygon'
+                }
+                geometry_type = geom_type_map.get(fs_geom_type, 'esriGeometryNull')
+                
+            if geometry_type is None or geometry_type == 'esriGeometryNull':
+                raise ValueError("无法确定几何类型。")
 
-        # 构造符合 ArcGIS REST API 覃求的输入格式
+        # 构造符合 ArcGIS REST API 要求的输入格式
         esri_json_output = {
             "geometryType": geometry_type,
             "geometries": esri_geometries
@@ -147,7 +147,7 @@ def convert_geojson_to_esri(geojson_data: Dict[str, Any]) -> Dict[str, Any]:
         return esri_json_output
 
     except Exception as e:
-        # 打印原始异常信息以便调试
+        # 打印原始异常信息
         import traceback
         traceback.print_exc()
         raise Exception(f"GeoJSON 转 Esri JSON 失败: {e}")

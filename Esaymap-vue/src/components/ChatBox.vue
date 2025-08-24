@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick,markRaw, render } from 'vue'
+import { ref, onMounted, nextTick,markRaw } from 'vue'
 import { useUpload } from '@/utils/useUpload'
 import Graphic from '@arcgis/core/Graphic'
 
