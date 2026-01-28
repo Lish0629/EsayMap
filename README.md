@@ -1,5 +1,3 @@
-
----
 # EsayMap Geo-Analytic Agent System 🌍🤖  
 
 > **基于大模型 (LLM) 与 GeoScene 的新一代地理空间分析平台**
