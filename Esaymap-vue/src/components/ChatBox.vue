@@ -209,7 +209,7 @@ const sendMessage = async () => {
           console.log('data.data:', data);
           // 1. 检查是否是几何数据 (ArcGIS JSON)
           // ArcGIS Server Geometry Service 通常返回 { geometries: [...] }
-          if (data.data.geometries && Array.isArray(data.data.geometries)) {
+          if ((data.data.geometries && Array.isArray(data.data.geometries))||data.data.geometry) {
             try {
               // 调用处理 ArcGIS JSON 几何的函数
               await handleArcGISGeometryResult(data.data, userMessage,data.type);
@@ -279,9 +279,11 @@ const sendMessage = async () => {
 async function handleArcGISGeometryResult(arcgisResultData, userQuery,operationType) {
   
   const geometries = arcgisResultData.geometries;
+  const geometry = arcgisResultData.geometry;
   const geometryType = arcgisResultData.geometryType;
   console.log("处理 ArcGIS JSON 响应数据:", arcgisResultData);
-  if (!geometries || !Array.isArray(geometries) || geometries.length === 0) {
+  console.log(geometry)
+  if (!geometry||(!geometries || !Array.isArray(geometries) || geometries.length === 0)) {
       console.warn("ArcGIS 几何数据为空或格式不正确:", arcgisResultData);
       throw new Error("无效的 ArcGIS 几何数据");
   }

@@ -75,11 +75,7 @@ const chatStore = useChatStore();
 
 // 打印地图
 const handlePrint = async () => {
-  if (!mapView) {
-    console.warn("MapView 实例不可用，无法执行截图。");
-    alert("地图视图未就绪，请稍后重试。");
-    return;
-  }
+  
 
   isPrinting.value = true;
   console.log("开始生成地图截图...");

@@ -114,7 +114,7 @@ export function useUpload() {
       reader.onload = (event) => {
         try {
           const json = JSON.parse(event.target.result);
-  
+          console.log(json);
           // 提取几何类型
           let type = null;
   

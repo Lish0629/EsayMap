@@ -176,7 +176,8 @@ async def generate_geojson_feature(request: ProcessRequest):
             success=True,
             message=success_msg,
             data={"geojson": geojson_result},
-            llm_raw_response="要素生成成功"
+            llm_raw_response="要素生成成功",
+            type="add"
         )
 
     except HTTPException as he:

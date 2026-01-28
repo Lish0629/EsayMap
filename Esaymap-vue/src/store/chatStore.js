@@ -7,7 +7,7 @@ export const useChatStore = defineStore('chat', () => {
   const messages = ref([
     {
       role: 'system',
-      text: '你好，欢迎使用EsayMap文言易图！'
+      text: '你好，欢迎使用EsayMap文言易图！\n你现在可以开始进行对话了，请输入你的问题。\n你可以试试这样说：\n“生成从杭州东站到杭州西站的路径”\n“生成test.geojson的100米缓冲区”'
     }
   ])
   const isLoading = ref(false)
