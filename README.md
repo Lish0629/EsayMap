@@ -19,24 +19,23 @@
 graph TD
     User[用户 (Browser)] -->|HTTP/80| Nginx[Nginx 反向代理]
     
-    subgraph "Web Server"
+    subgraph Web_Server[Web Server]
         Nginx -->|/ (Static)| Vue[Vue 前端 (Dist)]
         Nginx -->|/api| API[FastAPI 后端 (:8000)]
         Nginx -->|/data| FS[本地文件系统 (GeoJSON)]
     end
     
-    subgraph "AI Core (Aliyun Bailian)"
+    subgraph AI_Core[AI Core (Aliyun Bailian)]
         API <-->|Request| Agent1[创建要素智能体 (MCP)]
         API <-->|Request| Agent2[地理分析智能体 (RAG)]
         Agent1 <--> Tool1[DataV Atlas (Geocoding/Routing)]
         Agent2 <--> KB[GeoScene 知识库]
     end
     
-    subgraph "GIS Engine"
+    subgraph GIS_Engine[GIS Engine]
         Agent2 -.->|生成参数| API
         API -->|执行分析| GS[GeoScene Geometry Service]
     end
-
 ```
 
 ### 技术栈 (Tech Stack)
